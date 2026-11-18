@@ -1231,6 +1231,23 @@ function showAuthAlert(msg) {
   alertEl.hidden = false;
 }
 
+function translateAuthError(message = '') {
+  const m = message.toLowerCase();
+  if (m.includes('user already registered') || m.includes('already exists')) {
+    return 'এই ইমেইল দিয়ে আগেই অ্যাকাউন্ট খোলা আছে! অনুগ্রহ করে "লগইন (Login)" ট্যাবে গিয়ে লগইন করুন।';
+  }
+  if (m.includes('invalid login credentials')) {
+    return 'ইমেইল বা পাসওয়ার্ড সঠিক নয়! পাসওয়ার্ড ভুলে গেলে নিচে "পাসওয়ার্ড ভুলে গেছেন?" বাটনে ক্লিক করুন।';
+  }
+  if (m.includes('email not confirmed')) {
+    return 'আপনার ইমেইলটি এখনো কনফার্ম করা হয়নি। অনুগ্রহ করে Gmail Inbox/Spam চেক করে লিংকে ক্লিক করুন।';
+  }
+  if (m.includes('password should be at least')) {
+    return 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।';
+  }
+  return message;
+}
+
 function clearAuthAlert() {
   const alertEl = document.getElementById('authAlert');
   alertEl.textContent = '';
@@ -1341,7 +1358,7 @@ async function setupAuth() {
         options: { data: { full_name: name } }
       });
       if (error) {
-        showAuthAlert(error.message);
+        showAuthAlert(translateAuthError(error.message));
         return;
       }
       if (data.user && !data.session) {
@@ -1404,7 +1421,7 @@ async function setupAuth() {
         password
       });
       if (error) {
-        showAuthAlert(error.message);
+        showAuthAlert(translateAuthError(error.message));
         return;
       }
       if (data.user) {
@@ -1441,6 +1458,27 @@ async function setupAuth() {
   });
 
   document.getElementById('logoutBtn').addEventListener('click', logoutUser);
+
+  document.getElementById('forgotPasswordBtn').addEventListener('click', async () => {
+    clearAuthAlert();
+    const email = document.getElementById('loginIdentifier').value.trim().toLowerCase();
+    if (!email) {
+      showAuthAlert('পাসওয়ার্ড রিসেট করতে উপরে আপনার ইমেইলটি লিখুন।');
+      return;
+    }
+    if (!sbClient) {
+      showAuthAlert('লোকাল মোডে পাসওয়ার্ড রিসেট করা যায় না।');
+      return;
+    }
+    const { error } = await sbClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin
+    });
+    if (error) {
+      showAuthAlert(translateAuthError(error.message));
+      return;
+    }
+    showToast('আপনার ইমেইলে পাসওয়ার্ড রিসেট লিংক পাঠানো হয়েছে!');
+  });
 
   // Restore session (Cloud first if configured, else Local)
   if (sbClient) {
