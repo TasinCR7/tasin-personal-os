@@ -6,6 +6,12 @@
 const STORAGE_KEY = 'tasin_personal_os_v1';
 const USERS_KEY = 'tasin_os_users_v1';
 const SESSION_KEY = 'tasin_os_session_v1';
+const SUPABASE_CONFIG_KEY = 'tasin_os_supabase_config_v1';
+
+// Optional: You can paste your Supabase URL and Anon Key directly here to pre-configure for all devices
+const DEFAULT_SUPABASE_URL = '';
+const DEFAULT_SUPABASE_ANON_KEY = '';
+let sbClient = null;
 
 // Helper to get relative date string (YYYY-MM-DD)
 function getRelativeDate(offsetDays = 0) {
@@ -321,9 +327,79 @@ function loadState() {
   }
 }
 
+function getSupabaseConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SUPABASE_CONFIG_KEY) || 'null');
+    if (saved && saved.url && saved.key) return saved;
+  } catch {
+    // ignore
+  }
+  if (DEFAULT_SUPABASE_URL && DEFAULT_SUPABASE_ANON_KEY) {
+    return { url: DEFAULT_SUPABASE_URL, key: DEFAULT_SUPABASE_ANON_KEY };
+  }
+  return null;
+}
+
+function initSupabaseClient() {
+  const cfg = getSupabaseConfig();
+  if (cfg && window.supabase && typeof window.supabase.createClient === 'function') {
+    sbClient = window.supabase.createClient(cfg.url, cfg.key);
+  } else {
+    sbClient = null;
+  }
+  updateCloudStatusUI();
+  return sbClient;
+}
+
+function updateCloudStatusUI() {
+  const statusEl = document.getElementById('cloudSyncStatusText');
+  const noteEl = document.getElementById('authStorageNote');
+  if (sbClient) {
+    if (statusEl) statusEl.textContent = '☁️ ক্লাউড সিঙ্ক: Supabase সচল';
+    if (noteEl) noteEl.textContent = '☁️ Supabase ক্লাউড সিঙ্ক চালু আছে — যেকোনো ডিভাইস থেকে লগইন করতে পারবেন।';
+  } else {
+    if (statusEl) statusEl.textContent = '💾 ক্লাউড সিঙ্ক: লোকাল মোড';
+    if (noteEl) noteEl.textContent = '🔒 বর্তমানে লোকাল মোডে চলছে। ক্লাউড সিঙ্ক করতে নিচে Supabase সেটআপ করুন।';
+  }
+}
+
+async function syncToSupabase() {
+  if (!sbClient || !currentUser || !currentUser.isCloud) return;
+  try {
+    await sbClient.from('user_workspaces').upsert({
+      user_id: currentUser.id,
+      data: state,
+      updated_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Supabase sync error:', err);
+  }
+}
+
+async function loadFromSupabase(userId) {
+  if (!sbClient) return null;
+  try {
+    const { data, error } = await sbClient
+      .from('user_workspaces')
+      .select('data')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Supabase fetch error:', error);
+      return null;
+    }
+    return data && data.data ? data.data : null;
+  } catch (err) {
+    console.error('Supabase load exception:', err);
+    return null;
+  }
+}
+
 function saveState() {
   localStorage.setItem(getActiveStorageKey(), JSON.stringify(state));
   renderAll();
+  syncToSupabase();
 }
 
 // ==========================================================================
@@ -1161,9 +1237,11 @@ function clearAuthAlert() {
   alertEl.hidden = true;
 }
 
-function enterWorkspace(user) {
+async function enterWorkspace(user) {
   currentUser = user;
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ id: user.id, identifier: user.identifier }));
+  if (!user.isCloud) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ id: user.id, identifier: user.identifier }));
+  }
 
   document.getElementById('workspaceAvatar').textContent = (user.name || 'T').trim().charAt(0).toUpperCase();
   document.getElementById('workspaceTitle').textContent = `${user.name}-এর পার্সোনাল ওএস`;
@@ -1174,9 +1252,26 @@ function enterWorkspace(user) {
 
   state = loadState();
   renderAll();
+
+  if (user.isCloud && sbClient) {
+    const cloudData = await loadFromSupabase(user.id);
+    if (cloudData && cloudData.contacts) {
+      if (!Array.isArray(cloudData.work)) {
+        cloudData.work = JSON.parse(JSON.stringify(DEFAULT_DATA.work));
+      }
+      state = cloudData;
+      localStorage.setItem(getActiveStorageKey(), JSON.stringify(state));
+      renderAll();
+    } else {
+      await syncToSupabase();
+    }
+  }
 }
 
-function logoutUser() {
+async function logoutUser() {
+  if (sbClient && currentUser && currentUser.isCloud) {
+    await sbClient.auth.signOut();
+  }
   currentUser = null;
   localStorage.removeItem(SESSION_KEY);
   document.getElementById('appShell').hidden = true;
@@ -1186,10 +1281,39 @@ function logoutUser() {
   showToast('সফলভাবে লগআউট হয়েছে।');
 }
 
-function setupAuth() {
+function openSupabaseConfigModal() {
+  const cfg = getSupabaseConfig();
+  document.getElementById('sbUrlInput').value = cfg ? cfg.url : '';
+  document.getElementById('sbKeyInput').value = cfg ? cfg.key : '';
+  openModal('supabaseModal');
+}
+
+async function setupAuth() {
+  initSupabaseClient();
+
   const authTabs = document.getElementById('authTabs');
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
+
+  document.getElementById('openSupabaseSetupFromAuth').addEventListener('click', openSupabaseConfigModal);
+  document.getElementById('openSupabaseSetupBtn').addEventListener('click', openSupabaseConfigModal);
+
+  document.getElementById('supabaseForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const url = document.getElementById('sbUrlInput').value.trim();
+    const key = document.getElementById('sbKeyInput').value.trim();
+    localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify({ url, key }));
+    initSupabaseClient();
+    closeAllModals();
+    showToast('Supabase ক্লাউড সংযোগ সেভ হয়েছে! এখন ইমেইল দিয়ে লগইন/সাইনআপ করুন।');
+  });
+
+  document.getElementById('disconnectSupabaseBtn').addEventListener('click', () => {
+    localStorage.removeItem(SUPABASE_CONFIG_KEY);
+    initSupabaseClient();
+    closeAllModals();
+    showToast('লোকাল মোডে ফিরে আসা হয়েছে।');
+  });
 
   authTabs.addEventListener('click', e => {
     const btn = e.target.closest('.auth-tab');
@@ -1209,6 +1333,35 @@ function setupAuth() {
     const identifier = document.getElementById('signupIdentifier').value.trim().toLowerCase();
     const password = document.getElementById('signupPassword').value;
 
+    // Cloud Sign Up via Supabase
+    if (sbClient) {
+      const { data, error } = await sbClient.auth.signUp({
+        email: identifier,
+        password,
+        options: { data: { full_name: name } }
+      });
+      if (error) {
+        showAuthAlert(error.message);
+        return;
+      }
+      if (data.user && !data.session) {
+        showToast('আপনার ইমেইলে ভেরিফিকেশন লিংক পাঠানো হয়েছে। কনফার্ম করে লগইন করুন!');
+        return;
+      }
+      if (data.user) {
+        signupForm.reset();
+        await enterWorkspace({
+          id: data.user.id,
+          name,
+          identifier: data.user.email,
+          isCloud: true
+        });
+        showToast(`স্বাগতম ${name}! Supabase ক্লাউড অ্যাকাউন্ট তৈরি হয়েছে।`);
+      }
+      return;
+    }
+
+    // Local Sign Up fallback
     const users = getUsers();
     if (users.some(u => u.identifier === identifier)) {
       showAuthAlert('এই ইমেইল বা ইউজারনেম দিয়ে আগেই অ্যাকাউন্ট খোলা আছে। অনুগ্রহ করে লগইন করুন।');
@@ -1224,7 +1377,6 @@ function setupAuth() {
       createdAt: new Date().toISOString()
     };
 
-    // Migrate existing legacy workspace data for the very first user if present
     if (users.length === 0) {
       const legacyData = localStorage.getItem(STORAGE_KEY);
       if (legacyData) {
@@ -1235,7 +1387,7 @@ function setupAuth() {
     users.push(newUser);
     saveUsers(users);
     signupForm.reset();
-    enterWorkspace(newUser);
+    await enterWorkspace(newUser);
     showToast(`স্বাগতম ${newUser.name}! আপনার অ্যাকাউন্ট তৈরি হয়েছে।`);
   });
 
@@ -1245,6 +1397,31 @@ function setupAuth() {
     const identifier = document.getElementById('loginIdentifier').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value;
 
+    // Cloud Login via Supabase
+    if (sbClient) {
+      const { data, error } = await sbClient.auth.signInWithPassword({
+        email: identifier,
+        password
+      });
+      if (error) {
+        showAuthAlert(error.message);
+        return;
+      }
+      if (data.user) {
+        const fullName = data.user.user_metadata?.full_name || data.user.email.split('@')[0];
+        loginForm.reset();
+        await enterWorkspace({
+          id: data.user.id,
+          name: fullName,
+          identifier: data.user.email,
+          isCloud: true
+        });
+        showToast(`স্বাগতম, ${fullName}! (Supabase ক্লাউড সিঙ্ক সচল)`);
+      }
+      return;
+    }
+
+    // Local Login fallback
     const users = getUsers();
     const user = users.find(u => u.identifier === identifier);
     if (!user) {
@@ -1259,24 +1436,39 @@ function setupAuth() {
     }
 
     loginForm.reset();
-    enterWorkspace(user);
+    await enterWorkspace(user);
     showToast(`স্বাগতম, ${user.name}!`);
   });
 
   document.getElementById('logoutBtn').addEventListener('click', logoutUser);
 
-  // Restore session if already logged in
-  try {
-    const savedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-    if (savedSession && savedSession.id) {
-      const user = getUsers().find(u => u.id === savedSession.id);
-      if (user) {
-        enterWorkspace(user);
-        return;
-      }
+  // Restore session (Cloud first if configured, else Local)
+  if (sbClient) {
+    const { data } = await sbClient.auth.getSession();
+    if (data && data.session && data.session.user) {
+      const u = data.session.user;
+      const fullName = u.user_metadata?.full_name || u.email.split('@')[0];
+      await enterWorkspace({
+        id: u.id,
+        name: fullName,
+        identifier: u.email,
+        isCloud: true
+      });
+      return;
     }
-  } catch {
-    // Ignore invalid session
+  } else {
+    try {
+      const savedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+      if (savedSession && savedSession.id) {
+        const user = getUsers().find(u => u.id === savedSession.id);
+        if (user) {
+          await enterWorkspace(user);
+          return;
+        }
+      }
+    } catch {
+      // Ignore invalid session
+    }
   }
 }
 

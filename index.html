@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <!-- ==================== AUTHENTICATION SCREEN (LOGIN / SIGN UP) ==================== -->
@@ -59,9 +60,12 @@
         <button type="submit" class="btn-primary w-full" style="margin-top: 4px;">অ্যাকাউন্ট তৈরি করুন</button>
       </form>
 
-      <p class="auth-footnote">
-        🔒 আপনার সব তথ্য এনক্রিপ্টেড পাসওয়ার্ডের মাধ্যমে এই ব্রাউজারে নিরাপদভাবে সংরক্ষিত থাকে।
+      <p class="auth-footnote" id="authStorageNote">
+        🔒 আপনার সব তথ্য এনক্রিপ্টেড পাসওয়ার্ডের মাধ্যমে নিরাপদভাবে সংরক্ষিত থাকে।
       </p>
+      <button type="button" class="btn-outline w-full" id="openSupabaseSetupFromAuth" style="height:34px;">
+        ☁️ Supabase ক্লাউড সংযোগ সেটআপ করুন
+      </button>
     </div>
   </div>
 
@@ -189,6 +193,9 @@
       </div>
 
       <div class="sidebar-footer">
+        <button class="btn-outline w-full" id="openSupabaseSetupBtn" style="height:34px; margin-bottom:2px;">
+          <span id="cloudSyncStatusText">☁️ ক্লাউড সিঙ্ক: লোকাল মোড</span>
+        </button>
         <button class="btn-secondary w-full" id="exportDataBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           ব্যাকআপ ডাউনলোড (JSON)
@@ -971,7 +978,35 @@
       </form>
     </div>
 
-    <!-- 8. Global Search Modal (Cmd/Ctrl + K) -->
+    <!-- 8. Supabase Cloud Sync Setup Modal -->
+    <div class="modal-card" id="supabaseModal" hidden>
+      <div class="modal-header">
+        <h3>☁️ Supabase ক্লাউড সিঙ্ক সেটআপ</h3>
+        <button class="modal-close" data-close-modal>×</button>
+      </div>
+      <form id="supabaseForm" class="modal-body">
+        <p class="section-desc" style="margin-top:0;">
+          আপনার Supabase প্রজেক্টের <strong>Project URL</strong> এবং <strong>Anon Public Key</strong> দিন। তাহলে মোবাইল এবং কম্পিউটার থেকে একই অ্যাকাউন্টে সব ডাটা সিঙ্ক হবে।
+        </p>
+        <div class="form-group">
+          <label>Supabase Project URL *</label>
+          <input type="url" class="input" id="sbUrlInput" placeholder="https://xxxxxxxxxxxx.supabase.co" required />
+        </div>
+        <div class="form-group">
+          <label>Supabase Anon Key *</label>
+          <input type="text" class="input" id="sbKeyInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." required />
+        </div>
+        <div class="modal-footer" style="justify-content: space-between;">
+          <button type="button" class="btn-danger-ghost" id="disconnectSupabaseBtn">লোকাল মোডে ফিরুন</button>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-secondary" data-close-modal>বাতিল</button>
+            <button type="submit" class="btn-primary">সংযোগ সেভ করুন</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- 9. Global Search Modal (Cmd/Ctrl + K) -->
     <div class="modal-card search-modal" id="searchModal" hidden>
       <div class="search-modal-top">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
