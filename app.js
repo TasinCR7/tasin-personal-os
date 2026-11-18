@@ -4,6 +4,8 @@
  */
 
 const STORAGE_KEY = 'tasin_personal_os_v1';
+const USERS_KEY = 'tasin_os_users_v1';
+const SESSION_KEY = 'tasin_os_session_v1';
 
 // Helper to get relative date string (YYYY-MM-DD)
 function getRelativeDate(offsetDays = 0) {
@@ -265,19 +267,47 @@ const DEFAULT_DATA = {
   ]
 };
 
-// State Management
-let state = loadState();
+// Auth & State Management
+let currentUser = null;
+let state = JSON.parse(JSON.stringify(DEFAULT_DATA));
 let activeContactFilter = 'all';
 let activeConvFilter = 'all';
 let activeIdeaFilter = 'all';
 let activeFinanceFilter = 'all';
 let activeWorkFilter = 'all';
 
+function getActiveStorageKey() {
+  return currentUser ? `tasin_personal_os_user_${currentUser.id}` : STORAGE_KEY;
+}
+
+async function hashPassword(password) {
+  if (window.crypto && window.crypto.subtle) {
+    const msgBuffer = new TextEncoder().encode(password);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  return btoa(unescape(encodeURIComponent(password)));
+}
+
+function getUsers() {
+  try {
+    return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
 function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = getActiveStorageKey();
+    const raw = localStorage.getItem(key);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
+      localStorage.setItem(key, JSON.stringify(DEFAULT_DATA));
       return JSON.parse(JSON.stringify(DEFAULT_DATA));
     }
     const parsed = JSON.parse(raw);
@@ -292,7 +322,7 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(getActiveStorageKey(), JSON.stringify(state));
   renderAll();
 }
 
@@ -1119,7 +1149,139 @@ function closeAllModals() {
   });
 }
 
+function showAuthAlert(msg) {
+  const alertEl = document.getElementById('authAlert');
+  alertEl.textContent = msg;
+  alertEl.hidden = false;
+}
+
+function clearAuthAlert() {
+  const alertEl = document.getElementById('authAlert');
+  alertEl.textContent = '';
+  alertEl.hidden = true;
+}
+
+function enterWorkspace(user) {
+  currentUser = user;
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ id: user.id, identifier: user.identifier }));
+
+  document.getElementById('workspaceAvatar').textContent = (user.name || 'T').trim().charAt(0).toUpperCase();
+  document.getElementById('workspaceTitle').textContent = `${user.name}-এর পার্সোনাল ওএস`;
+  document.getElementById('workspaceUserEmail').textContent = user.identifier;
+
+  document.getElementById('authScreen').hidden = true;
+  document.getElementById('appShell').hidden = false;
+
+  state = loadState();
+  renderAll();
+}
+
+function logoutUser() {
+  currentUser = null;
+  localStorage.removeItem(SESSION_KEY);
+  document.getElementById('appShell').hidden = true;
+  document.getElementById('authScreen').hidden = false;
+  document.getElementById('loginForm').reset();
+  clearAuthAlert();
+  showToast('সফলভাবে লগআউট হয়েছে।');
+}
+
+function setupAuth() {
+  const authTabs = document.getElementById('authTabs');
+  const loginForm = document.getElementById('loginForm');
+  const signupForm = document.getElementById('signupForm');
+
+  authTabs.addEventListener('click', e => {
+    const btn = e.target.closest('.auth-tab');
+    if (!btn) return;
+    clearAuthAlert();
+    document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const mode = btn.dataset.authMode;
+    loginForm.hidden = mode !== 'login';
+    signupForm.hidden = mode !== 'signup';
+  });
+
+  signupForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearAuthAlert();
+    const name = document.getElementById('signupName').value.trim();
+    const identifier = document.getElementById('signupIdentifier').value.trim().toLowerCase();
+    const password = document.getElementById('signupPassword').value;
+
+    const users = getUsers();
+    if (users.some(u => u.identifier === identifier)) {
+      showAuthAlert('এই ইমেইল বা ইউজারনেম দিয়ে আগেই অ্যাকাউন্ট খোলা আছে। অনুগ্রহ করে লগইন করুন।');
+      return;
+    }
+
+    const passwordHash = await hashPassword(password);
+    const newUser = {
+      id: 'u_' + Date.now(),
+      name,
+      identifier,
+      passwordHash,
+      createdAt: new Date().toISOString()
+    };
+
+    // Migrate existing legacy workspace data for the very first user if present
+    if (users.length === 0) {
+      const legacyData = localStorage.getItem(STORAGE_KEY);
+      if (legacyData) {
+        localStorage.setItem(`tasin_personal_os_user_${newUser.id}`, legacyData);
+      }
+    }
+
+    users.push(newUser);
+    saveUsers(users);
+    signupForm.reset();
+    enterWorkspace(newUser);
+    showToast(`স্বাগতম ${newUser.name}! আপনার অ্যাকাউন্ট তৈরি হয়েছে।`);
+  });
+
+  loginForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearAuthAlert();
+    const identifier = document.getElementById('loginIdentifier').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+
+    const users = getUsers();
+    const user = users.find(u => u.identifier === identifier);
+    if (!user) {
+      showAuthAlert('এই ইমেইল বা ইউজারনেমে কোনো অ্যাকাউন্ট পাওয়া যায়নি। প্রথমে Sign Up করুন।');
+      return;
+    }
+
+    const passwordHash = await hashPassword(password);
+    if (user.passwordHash !== passwordHash) {
+      showAuthAlert('পাসওয়ার্ডটি সঠিক নয়। আবার চেষ্টা করুন।');
+      return;
+    }
+
+    loginForm.reset();
+    enterWorkspace(user);
+    showToast(`স্বাগতম, ${user.name}!`);
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', logoutUser);
+
+  // Restore session if already logged in
+  try {
+    const savedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    if (savedSession && savedSession.id) {
+      const user = getUsers().find(u => u.id === savedSession.id);
+      if (user) {
+        enterWorkspace(user);
+        return;
+      }
+    }
+  } catch {
+    // Ignore invalid session
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  setupAuth();
   // Set default dates in forms
   const today = getRelativeDate(0);
   ['contactLastDate', 'convDate', 'rfDate', 'journalDate', 'finDate', 'quickTaskDate'].forEach(id => {

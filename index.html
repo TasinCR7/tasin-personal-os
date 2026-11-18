@@ -11,14 +11,68 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="app-shell">
+  <!-- ==================== AUTHENTICATION SCREEN (LOGIN / SIGN UP) ==================== -->
+  <div class="auth-screen" id="authScreen">
+    <div class="card auth-card">
+      <div class="auth-brand">
+        <div class="workspace-avatar">T</div>
+        <div>
+          <div class="workspace-title">তাসিনের পার্সোনাল ওএস</div>
+          <div class="workspace-subtitle">Notion Minimal Pro • ব্যক্তিগত ওয়ার্কস্পেস</div>
+        </div>
+      </div>
+
+      <div class="auth-tabs" id="authTabs">
+        <button type="button" class="auth-tab active" data-auth-mode="login">লগইন (Login)</button>
+        <button type="button" class="auth-tab" data-auth-mode="signup">নতুন অ্যাকাউন্ট (Sign Up)</button>
+      </div>
+
+      <div class="auth-alert" id="authAlert" hidden></div>
+
+      <!-- Login Form -->
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label>ইমেইল বা ইউজারনেম *</label>
+          <input type="text" class="input" id="loginIdentifier" placeholder="যেমন: tasin@example.com" required />
+        </div>
+        <div class="form-group">
+          <label>পাসওয়ার্ড *</label>
+          <input type="password" class="input" id="loginPassword" placeholder="আপনার পাসওয়ার্ড লিখুন" required />
+        </div>
+        <button type="submit" class="btn-primary w-full" style="margin-top: 4px;">ওয়ার্কস্পেসে প্রবেশ করুন</button>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form id="signupForm" class="auth-form" hidden>
+        <div class="form-group">
+          <label>আপনার নাম *</label>
+          <input type="text" class="input" id="signupName" placeholder="যেমন: তাসিন আহমেদ" required />
+        </div>
+        <div class="form-group">
+          <label>ইমেইল বা ইউজারনেম *</label>
+          <input type="text" class="input" id="signupIdentifier" placeholder="যেমন: tasin@example.com" required />
+        </div>
+        <div class="form-group">
+          <label>নতুন পাসওয়ার্ড *</label>
+          <input type="password" class="input" id="signupPassword" placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড" minlength="6" required />
+        </div>
+        <button type="submit" class="btn-primary w-full" style="margin-top: 4px;">অ্যাকাউন্ট তৈরি করুন</button>
+      </form>
+
+      <p class="auth-footnote">
+        🔒 আপনার সব তথ্য এনক্রিপ্টেড পাসওয়ার্ডের মাধ্যমে এই ব্রাউজারে নিরাপদভাবে সংরক্ষিত থাকে।
+      </p>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell" hidden>
     <!-- Left Sidebar (Notion Minimal Pro Workspace Navigation) -->
     <aside class="sidebar" id="sidebar">
       <div class="workspace-header">
-        <div class="workspace-avatar">T</div>
+        <div class="workspace-avatar" id="workspaceAvatar">T</div>
         <div class="workspace-meta">
-          <div class="workspace-title">তাসিনের পার্সোনাল ওএস</div>
-          <div class="workspace-subtitle">Notion Minimal Pro • v2.4</div>
+          <div class="workspace-title" id="workspaceTitle">তাসিনের পার্সোনাল ওএস</div>
+          <div class="workspace-subtitle" id="workspaceUserEmail">Notion Minimal Pro • v2.4</div>
         </div>
       </div>
 
@@ -139,7 +193,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           ব্যাকআপ ডাউনলোড (JSON)
         </button>
-        <label class="btn-link import-label" for="importFileInput">ডাটা রিস্টোর করুন</label>
+        <div style="display:flex; align-items:center; justify-content:space-between; width:100%; padding: 2px 4px;">
+          <label class="btn-link import-label" for="importFileInput">ডাটা রিস্টোর</label>
+          <button type="button" class="btn-danger-ghost" id="logoutBtn">লগআউট →</button>
+        </div>
         <input type="file" id="importFileInput" accept=".json" hidden />
       </div>
     </aside>
