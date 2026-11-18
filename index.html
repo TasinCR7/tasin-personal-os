@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal OS — ব্যক্তিগত সম্পর্ক, কাজ ও জীবন ব্যবস্থাপনা</title>
+  <!-- Google Fonts: Inter & Hind Siliguri for crisp Bengali + English Notion Minimal Pro typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Left Sidebar (Notion Minimal Pro Workspace Navigation) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="workspace-header">
+        <div class="workspace-avatar">T</div>
+        <div class="workspace-meta">
+          <div class="workspace-title">তাসিনের পার্সোনাল ওএস</div>
+          <div class="workspace-subtitle">Notion Minimal Pro • v2.4</div>
+        </div>
+      </div>
+
+      <div class="sidebar-quick-actions">
+        <button class="quick-search-btn" id="openSearchBtn" title="দ্রুত খুঁজুন (Ctrl + K)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>যেকোনো মানুষ, নোট বা হিসাব খুঁজুন...</span>
+          <kbd>⌘K</kbd>
+        </button>
+      </div>
+
+      <div class="sidebar-section-label">ওয়ার্কস্পেস মডিউল</div>
+      <nav class="sidebar-nav" id="sidebarNav">
+        <button class="nav-item active" data-tab="dashboard">
+          <span class="nav-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          </span>
+          <span class="nav-text">হোম ড্যাশবোর্ড</span>
+          <span class="nav-badge" id="navDueBadge">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="contacts">
+          <span class="nav-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+          <span class="nav-text">পরিচিত মানুষ ও যোগাযোগ</span>
+          <span class="nav-count" id="navContactsCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="conversations">
+          <span class="nav-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <span class="nav-text">কে কী বলেছে ও কথা নোট</span>
+          <span class="nav-count" id="navConvCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="redflags">
+          <span class="nav-icon nav-icon-danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </span>
+          <span class="nav-text">খারাপ ব্যবহার ও সতর্কতা লগ</span>
+          <span class="nav-badge nav-badge-error" id="navRedFlagsCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="tasks">
+          <span class="nav-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </span>
+          <span class="nav-text">সামনের কাজ ও পরিকল্পনা</span>
+          <span class="nav-count" id="navTasksCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="ideas">
+          <span class="nav-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+          </span>
+          <span class="nav-text">আইডিয়া ভল্ট (Ideas)</span>
+          <span class="nav-count" id="navIdeasCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="journal">
+          <span class="nav-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </span>
+          <span class="nav-text">জীবনের ঘটনা ও ডায়েরি</span>
+          <span class="nav-count" id="navJournalCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="finance">
+          <span class="nav-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </span>
+          <span class="nav-text">ব্যক্তিগত আয়-ব্যয় ও হিসাব</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section-label">লেভেল গাইড (যোগাযোগের গুরুত্ব)</div>
+      <div class="level-legend">
+        <div class="legend-item">
+          <span class="level-dot level-1-dot"></span>
+          <div>
+            <strong>Level 1 — ভিআইপি / কোর</strong>
+            <p>সবচেয়ে কাছের ও গুরুত্বপূর্ণ মানুষ</p>
+          </div>
+        </div>
+        <div class="legend-item">
+          <span class="level-dot level-2-dot"></span>
+          <div>
+            <strong>Level 2 — নিয়মিত নেটওয়ার্ক</strong>
+            <p>কয়েক মাস পর পর খোঁজখবর নেওয়া</p>
+          </div>
+        </div>
+        <div class="legend-item">
+          <span class="level-dot level-3-dot"></span>
+          <div>
+            <strong>Level 3 — সাধারণ পরিচিত</strong>
+            <p>প্রয়োজনে বা উৎসব-পার্বণে যোগাযোগ</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn-secondary w-full" id="exportDataBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          ব্যাকআপ ডাউনলোড (JSON)
+        </button>
+        <label class="btn-link import-label" for="importFileInput">ডাটা রিস্টোর করুন</label>
+        <input type="file" id="importFileInput" accept=".json" hidden />
+      </div>
+    </aside>
+
+    <!-- Main Workspace Area -->
+    <main class="main-canvas">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="মেনু">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="breadcrumb">
+            <span class="breadcrumb-root">তাসিনের ওয়ার্কস্পেস</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current" id="topbarTitle">হোম ড্যাশবোর্ড</span>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="today-pill" id="todayDateDisplay">আজকের তারিখ</div>
+          <button class="btn-secondary" id="quickLogConvBtn">
+            + কে কী বলেছে নোট
+          </button>
+          <button class="btn-primary" id="quickAddContactBtn">
+            + নতুন মানুষ যুক্ত করুন
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Container -->
+      <div class="content-container">
+
+        <!-- ==================== TAB 1: DASHBOARD ==================== -->
+        <section class="tab-panel active" id="tab-dashboard">
+          <div class="hero-header">
+            <div class="hero-pills">
+              <span class="badge-success">● সিস্টেম সচল</span>
+              <span class="chip">ব্যক্তিগত সিআরএম ও লাইফ ওএস</span>
+            </div>
+            <h1 class="headline-lg">আপনার সম্পর্ক, কথা, কাজ ও জীবনের সম্পূর্ণ নিয়ন্ত্রণ।</h1>
+            <p class="hero-subtitle">
+              কয়েক মাস পর পর পরিচিতদের খোঁজখবর নেওয়া, কে কখন কী বলেছে বা খারাপ ব্যবহার করেছে তার গোপন নোট, সামনের কাজ, আইডিয়া এবং ব্যক্তিগত আয়-ব্যয়ের প্রিমিয়াম নথিপত্র।
+            </p>
+          </div>
+
+          <!-- KPI Summary Row -->
+          <div class="kpi-grid">
+            <div class="card kpi-card" data-goto="contacts">
+              <div class="kpi-top">
+                <span class="kpi-label">মোট পরিচিত মানুষ (Level 1-3)</span>
+                <span class="chip" id="dashLevel1Count">Level 1: 0</span>
+              </div>
+              <div class="kpi-value" id="dashTotalContacts">0</div>
+              <div class="kpi-foot" id="dashDueText">আজ যোগাযোগ প্রয়োজন: 0 জন</div>
+            </div>
+
+            <div class="card kpi-card" data-goto="redflags">
+              <div class="kpi-top">
+                <span class="kpi-label">খারাপ ব্যবহার ও সতর্কতা নোট</span>
+                <span class="badge-error">সতর্কতা</span>
+              </div>
+              <div class="kpi-value" id="dashRedFlagCount">0</div>
+              <div class="kpi-foot">ভবিষ্যতে দূরত্ব বজায় রাখার রেকর্ড</div>
+            </div>
+
+            <div class="card kpi-card" data-goto="tasks">
+              <div class="kpi-top">
+                <span class="kpi-label">সামনের বাকি কাজ</span>
+                <span class="badge-warning" id="dashHighPriorityTasks">জরুরি: 0</span>
+              </div>
+              <div class="kpi-value" id="dashPendingTasks">0</div>
+              <div class="kpi-foot" id="dashIdeasCountFoot">সংরক্ষিত আইডিয়া: 0 টি</div>
+            </div>
+
+            <div class="card kpi-card" data-goto="finance">
+              <div class="kpi-top">
+                <span class="kpi-label">ব্যক্তিগত নিট ব্যালেন্স</span>
+                <span class="badge-success">হিসাব</span>
+              </div>
+              <div class="kpi-value" id="dashNetBalance">৳ ০</div>
+              <div class="kpi-foot" id="dashIncomeExpenseFoot">আয়: ৳০ • ব্যয়: ৳০</div>
+            </div>
+          </div>
+
+          <!-- Main Two-Column Dashboard Split -->
+          <div class="dashboard-split">
+            <!-- Left Column: Who to contact now & Upcoming follow-ups -->
+            <div class="card section-card">
+              <div class="section-card-header">
+                <div>
+                  <h2 class="section-title">কাদের সাথে যোগাযোগ করার সময় হয়েছে?</h2>
+                  <p class="section-desc">কয়েক মাস পর পর খোঁজ নেওয়ার রিমাইন্ডার তালিকা (লেভেল অনুযায়ী সাজানো)</p>
+                </div>
+                <button class="btn-secondary" data-goto-btn="contacts">সবাইকে দেখুন</button>
+              </div>
+              <div id="dashFollowupList" class="stack-list"></div>
+            </div>
+
+            <!-- Right Column: Quick Upcoming Tasks & Recent Spoken Notes -->
+            <div class="dashboard-side-stack">
+              <div class="card section-card">
+                <div class="section-card-header">
+                  <div>
+                    <h2 class="section-title">সামনের জরুরি কাজসমূহ</h2>
+                    <p class="section-desc">আপনি সামনে কী কী করবেন তার তালিকা</p>
+                  </div>
+                  <button class="btn-link" data-goto-btn="tasks">সব কাজ →</button>
+                </div>
+                <div id="dashTasksList" class="stack-list compact-stack"></div>
+              </div>
+
+              <div class="card section-card">
+                <div class="section-card-header">
+                  <div>
+                    <h2 class="section-title">কে কী বলেছে ও আচরণ নোট</h2>
+                    <p class="section-desc">সাম্প্রতিক কথোপকথন ও খারাপ ব্যবহারের নোট</p>
+                  </div>
+                  <button class="btn-link" data-goto-btn="conversations">সব নোট →</button>
+                </div>
+                <div id="dashRecentNotesList" class="stack-list compact-stack"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== TAB 2: CONTACTS (LEVEL 1, 2, 3) ==================== -->
+        <section class="tab-panel" id="tab-contacts">
+          <div class="module-header">
+            <div>
+              <div class="hero-pills">
+                <span class="chip">Relationship CRM</span>
+                <span class="badge-success">Level 1 • Level 2 • Level 3</span>
+              </div>
+              <h1 class="headline-md">পরিচিত মানুষ ও নিয়মিত যোগাযোগ ব্যবস্থাপনা</h1>
+              <p class="section-desc">গুরুত্বপূর্ণ মানুষদের Level 1, 2, 3 অনুযায়ী ভাগ করে রাখুন এবং কে কখন কী বলেছে বা কত মাস পর পর যোগাযোগ করবেন তা নির্ধারণ করুন।</p>
+            </div>
+            <button class="btn-primary" id="addContactBtnTab">+ নতুন পরিচিত মানুষ যুক্ত করুন</button>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="filter-bar card">
+            <div class="filter-tabs" id="contactLevelFilters">
+              <button class="filter-pill active" data-level="all">সবাই</button>
+              <button class="filter-pill" data-level="1">★ Level 1 (সবচেয়ে গুরুত্বপূর্ণ)</button>
+              <button class="filter-pill" data-level="2">◆ Level 2 (নিয়মিত যোগাযোগ)</button>
+              <button class="filter-pill" data-level="3">● Level 3 (সাধারণ পরিচিত)</button>
+              <button class="filter-pill" data-level="due">⏰ যোগাযোগের সময় হয়েছে</button>
+              <button class="filter-pill" data-level="redflag">⚠️ খারাপ ব্যবহার করেছেন</button>
+            </div>
+            <div class="filter-search">
+              <input type="text" class="input" id="contactSearchInput" placeholder="নাম, পেশা, পরিচয় বা নোট দিয়ে খুঁজুন..." />
+            </div>
+          </div>
+
+          <!-- Contacts Grid -->
+          <div class="contacts-grid" id="contactsGrid"></div>
+        </section>
+
+        <!-- ==================== TAB 3: CONVERSATIONS (কে কী বলেছে) ==================== -->
+        <section class="tab-panel" id="tab-conversations">
+          <div class="module-header">
+            <div>
+              <div class="hero-pills">
+                <span class="chip">Spoken Words & Promises</span>
+              </div>
+              <h1 class="headline-md">কে আমাকে কী বলেছে ও যোগাযোগের নোট</h1>
+              <p class="section-desc">কার সাথে কবে কী কথা হয়েছে, কে কী ওয়াদা করেছে, কী পরামর্শ দিয়েছে এবং পরবর্তী যোগাযোগ কবে করবেন তার বিস্তারিত রেকর্ড।</p>
+            </div>
+            <button class="btn-primary" id="addConvBtn">+ নতুন কথোপকথন নোট করুন</button>
+          </div>
+
+          <div class="filter-bar card">
+            <div class="filter-tabs" id="convToneFilters">
+              <button class="filter-pill active" data-tone="all">সব কথা</button>
+              <button class="filter-pill" data-tone="promise">🤝 কথা/ওয়াদা দিয়েছেন</button>
+              <button class="filter-pill" data-tone="positive">✨ ইতিবাচক / উপকারী কথা</button>
+              <button class="filter-pill" data-tone="neutral">📝 সাধারণ আলোচনা</button>
+              <button class="filter-pill" data-tone="caution">⚠️ সন্দেহজনক / সতর্কতা</button>
+            </div>
+            <div class="filter-search">
+              <input type="text" class="input" id="convSearchInput" placeholder="ব্যক্তির নাম বা কথার বিষয়বস্তু খুঁজুন..." />
+            </div>
+          </div>
+
+          <div class="stack-list" id="conversationsList"></div>
+        </section>
+
+        <!-- ==================== TAB 4: RED FLAGS (খারাপ ব্যবহার লগ) ==================== -->
+        <section class="tab-panel" id="tab-redflags">
+          <div class="module-header">
+            <div>
+              <div class="hero-pills">
+                <span class="badge-error">Boundary & Caution Vault</span>
+              </div>
+              <h1 class="headline-md">আমাকে কেউ খারাপ ব্যবহার করলে তার নোট</h1>
+              <p class="section-desc">কে কবে আপনার সাথে খারাপ আচরণ করেছে, অসম্মান করেছে, কথা দিয়ে কথা রাখেনি বা ক্ষতি করার চেষ্টা করেছে — সব এখানে লিখে রাখুন যেন ভবিষ্যতে ভুল না হয়।</p>
+            </div>
+            <button class="btn-primary" id="addRedFlagBtn">+ খারাপ ব্যবহারের নোট যুক্ত করুন</button>
+          </div>
+
+          <div class="alert-banner error-banner">
+            <div>
+              <strong>কেন এই তালিকাটি জরুরি?</strong>
+              <p>মানুষ সময়ের সাথে খারাপ আচরণের কথা ভুলে গিয়ে আবার একই মানুষের ওপর ভরসা করে কষ্ট পায়। এই নোটগুলো আপনাকে মনে করিয়ে দেবে কার সাথে কতটুকু দূরত্ব বজায় রাখতে হবে।</p>
+            </div>
+          </div>
+
+          <div class="stack-list" id="redFlagsList"></div>
+        </section>
+
+        <!-- ==================== TAB 5: UPCOMING TASKS (সামনের কাজ) ==================== -->
+        <section class="tab-panel" id="tab-tasks">
+          <div class="module-header">
+            <div>
+              <div class="hero-pills">
+                <span class="chip">Action & Roadmap</span>
+              </div>
+              <h1 class="headline-md">আমি সামনের কাজগুলো কী করবো</h1>
+              <p class="section-desc">আপনার আজকের কাজ, এই সপ্তাহের পরিকল্পনা এবং ভবিষ্যতের লক্ষ্যগুলো অগ্রাধিকার অনুযায়ী সাজিয়ে রাখুন।</p>
+            </div>
+            <button class="btn-primary" id="addTaskBtn">+ নতুন কাজ যুক্ত করুন</button>
+          </div>
+
+          <!-- Quick Inline Task Add -->
+          <form class="card quick-task-form" id="quickTaskForm">
+            <input type="text" class="input" id="quickTaskTitle" placeholder="সামনে কী কাজ করতে চান তা দ্রুত লিখুন..." required />
+            <select class="input" id="quickTaskHorizon">
+              <option value="today">আজ / এই সপ্তাহে</option>
+              <option value="month">এই মাসে</option>
+              <option value="future">ভবিষ্যৎ পরিকল্পনা</option>
+            </select>
+            <select class="input" id="quickTaskPriority">
+              <option value="high">🔥 জরুরি (High)</option>
+              <option value="medium" selected>⚡ মাঝারি (Medium)</option>
+              <option value="low">🌱 সাধারণ (Low)</option>
+            </select>
+            <input type="date" class="input" id="quickTaskDate" />
+            <button type="submit" class="btn-primary">যুক্ত করুন</button>
+          </form>
+
+          <div class="tasks-columns">
+            <div class="card task-col">
+              <div class="task-col-header">
+                <h3>আজ ও এই সপ্তাহের কাজ</h3>
+                <span class="chip" id="colCountToday">0</span>
+              </div>
+              <div class="stack-list" id="tasksListToday"></div>
+            </div>
+
+            <div class="card task-col">
+              <div class="task-col-header">
+                <h3>এই মাসের পরিকল্পনা</h3>
+                <span class="chip" id="colCountMonth">0</span>
+              </div>
+              <div class="stack-list" id="tasksListMonth"></div>
+            </div>
+
+            <div class="card task-col">
+              <div class="task-col-header">
+                <h3>দূরবর্তী ভবিষ্যৎ ও লক্ষ্য</h3>
+                <span class="chip" id="colCountFuture">0</span>
+              </div>
+              <div class="stack-list" id="tasksListFuture"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== TAB 6: IDEAS VAULT (আইডিয়া সমূহ) ==================== -->
+        <section class="tab-panel" id="tab-ideas">
+          <div class="module-header">
+            <div>
+              <div class="hero-pills">
+                <span class="chip">Idea Incubator</span>
+              </div>
+              <h1 class="headline-md">আমার আইডিয়া ভল্ট (Ideas Vault)</h1>
+              <p class="section-desc">ব্যবসা, ওয়েবসাইট, প্রজেক্ট, কনটেন্ট বা জীবনের যেকোনো নতুন আইডিয়া মাথায় আসলেই এখানে সাজিয়ে রাখুন।</p>
+            </div>
+            <button class="btn-primary" id="addIdeaBtn">+ নতুন আইডিয়া সংরক্ষণ করুন</button>
+          </div>
+
+          <div class="filter-bar card">
+            <div class="filter-tabs" id="ideaCategoryFilters">
+              <button class="filter-pill active" data-cat="all">সব আইডিয়া</button>
+              <button class="filter-pill" data-cat="business">💼 ব্যবসা ও আয়</button>
+              <button class="filter-pill" data-cat="tech">💻 ওয়েবসাইট ও টেক</button>
+              <button class="filter-pill" data-cat="content">🎬 কনটেন্ট ও মিডিয়া</button>
+              <button class="filter-pill" data-cat="life">🌟 জীবনধারা ও ব্যক্তিগত</button>
+            </div>
+          </div>
+
+          <div class="ideas-grid" id="ideasGrid"></div>
+        </section>
+
+        <!-- ==================== TAB 7: LIFE EVENTS (জীবনের ঘটনা) ==================== -->
+        <section class="tab-panel" id="tab-journal">
+          <div class="module-header">
+            <div>
+              <div class="hero-pills">
+                <span class="chip">Life Timeline & Memories</span>
+              </div>
+              <h1 class="headline-md">আমার জীবনের ঘটনা ও স্মৃতিচারণ</h1>
+              <p class="section-desc">জীবনের গুরুত্বপূর্ণ মোড়, সাফল্য, কঠিন সময়ের শিক্ষা এবং বিশেষ দিনগুলোর টাইমলাইন।</p>
+            </div>
+            <button class="btn-primary" id="addJournalBtn">+ নতুন ঘটনা যুক্ত করুন</button>
+          </div>
+
+          <div class="timeline-wrapper" id="journalTimeline"></div>
+        </section>
+
+        <!-- ==================== TAB 8: PERSONAL FINANCE (আয়-ব্যয় ও খরচ) ==================== -->
+        <section class="tab-panel" id="tab-finance">
+          <div class="module-header">
+            <div>
+              <div class="hero-pills">
+                <span class="chip">Personal Ledger</span>
+              </div>
+              <h1 class="headline-md">জীবনের ব্যক্তিগত আয়, ব্যয় ও খরচসমূহ</h1>
+              <p class="section-desc">আপনার প্রতিদিনের আয়, খরচ, সঞ্চয় এবং কোন খাতে কত টাকা যাচ্ছে তার পরিষ্কার হিসাব।</p>
+            </div>
+            <button class="btn-primary" id="addFinanceBtn">+ নতুন আয় / ব্যয় লিখুন</button>
+          </div>
+
+          <div class="kpi-grid finance-kpi-grid">
+            <div class="card">
+              <span class="kpi-label">মোট আয় (Income)</span>
+              <div class="kpi-value text-success" id="finTotalIncome">৳ ০</div>
+              <div class="kpi-foot">সকল আয়ের যোগফল</div>
+            </div>
+            <div class="card">
+              <span class="kpi-label">মোট ব্যয় / খরচ (Expense)</span>
+              <div class="kpi-value text-error" id="finTotalExpense">৳ ০</div>
+              <div class="kpi-foot">সকল খরচের যোগফল</div>
+            </div>
+            <div class="card">
+              <span class="kpi-label">হাতে থাকা ব্যালেন্স (Net Balance)</span>
+              <div class="kpi-value" id="finNetBalance">৳ ০</div>
+              <div class="kpi-foot">আয় বিয়োগ ব্যয়</div>
+            </div>
+          </div>
+
+          <div class="dashboard-split">
+            <div class="card section-card">
+              <div class="section-card-header">
+                <h2 class="section-title">আয় ও খরচের তালিকা</h2>
+                <div class="filter-tabs" id="financeTypeFilters">
+                  <button class="filter-pill active" data-fintype="all">সব</button>
+                  <button class="filter-pill" data-fintype="income">আয় (Income)</button>
+                  <button class="filter-pill" data-fintype="expense">ব্যয় (Expense)</button>
+                </div>
+              </div>
+              <div class="stack-list" id="financeList"></div>
+            </div>
+
+            <div class="card section-card">
+              <div class="section-card-header">
+                <h2 class="section-title">খাত অনুযায়ী খরচের বিশ্লেষণ</h2>
+              </div>
+              <div id="expenseCategoryBreakdown" class="category-breakdown"></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Modal Backdrop -->
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+
+    <!-- 1. Add / Edit Contact Modal -->
+    <div class="modal-card" id="contactModal" hidden>
+      <div class="modal-header">
+        <h3 id="contactModalTitle">নতুন পরিচিত মানুষ যুক্ত করুন</h3>
+        <button class="modal-close" data-close-modal>×</button>
+      </div>
+      <form id="contactForm" class="modal-body">
+        <input type="hidden" id="contactId" />
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>নাম *</label>
+            <input type="text" class="input" id="contactName" placeholder="যেমন: তানভীর আহমেদ" required />
+          </div>
+          <div class="form-group">
+            <label>সম্পর্ক / পরিচয় *</label>
+            <input type="text" class="input" id="contactRelation" placeholder="যেমন: বিশ্ববিদ্যালয়ের বড় ভাই / ক্লায়েন্ট" required />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>গুরুত্বের লেভেল (Level 1, 2, 3) *</label>
+            <select class="input" id="contactLevel" required>
+              <option value="1">★ Level 1 — অত্যন্ত গুরুত্বপূর্ণ (Core / VIP)</option>
+              <option value="2" selected>◆ Level 2 — নিয়মিত যোগাযোগ (কয়েক মাস পর পর)</option>
+              <option value="3">● Level 3 — সাধারণ পরিচিত (প্রয়োজনে যোগাযোগ)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>কত দিন/মাস পর পর যোগাযোগ করবেন? *</label>
+            <select class="input" id="contactFrequencyDays" required>
+              <option value="15">প্রতি ১৫ দিন পর পর</option>
+              <option value="30">প্রতি ১ মাস পর পর (৩০ দিন)</option>
+              <option value="60">প্রতি ২ মাস পর পর (৬০ দিন)</option>
+              <option value="90" selected>প্রতি ৩ মাস পর পর (৯০ দিন)</option>
+              <option value="120">প্রতি ৪ মাস পর পর (১২০ দিন)</option>
+              <option value="180">প্রতি ৬ মাস পর পর (১৮০ দিন)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>ফোন নম্বর / হোয়াটসঅ্যাপ</label>
+            <input type="text" class="input" id="contactPhone" placeholder="017XXXXXXXX" />
+          </div>
+          <div class="form-group">
+            <label>সর্বশেষ যোগাযোগের তারিখ *</label>
+            <input type="date" class="input" id="contactLastDate" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>তিনি আমাকে কী বলেছেন / তার সম্পর্কে মূল নোট</label>
+          <textarea class="input" id="contactNotes" rows="3" placeholder="যেমন: সবসময় ভালো পরামর্শ দেন, ব্যবসার ব্যাপারে সাহায্য করতে চেয়েছেন..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>বাতিল</button>
+          <button type="submit" class="btn-primary">সংরক্ষণ করুন</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 2. Add Conversation Note (কে কী বলেছে) Modal -->
+    <div class="modal-card" id="convModal" hidden>
+      <div class="modal-header">
+        <h3>কে আমাকে কী বলেছে — নতুন নোট</h3>
+        <button class="modal-close" data-close-modal>×</button>
+      </div>
+      <form id="convForm" class="modal-body">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>কার সাথে কথা হয়েছে? *</label>
+            <input type="text" class="input" id="convPerson" list="contactNamesDatalist" placeholder="নাম লিখুন বা সিলেক্ট করুন" required />
+            <datalist id="contactNamesDatalist"></datalist>
+          </div>
+          <div class="form-group">
+            <label>তারিখ *</label>
+            <input type="date" class="input" id="convDate" required />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>কথার ধরন *</label>
+            <select class="input" id="convTone">
+              <option value="promise">🤝 কথা বা ওয়াদা দিয়েছেন</option>
+              <option value="positive">✨ ইতিবাচক / ভালো পরামর্শ</option>
+              <option value="neutral">📝 সাধারণ কথোপকথন</option>
+              <option value="caution">⚠️ সন্দেহজনক / মাথায় রাখতে হবে</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>পরবর্তী ফলো-আপ তারিখ (ঐচ্ছিক)</label>
+            <input type="date" class="input" id="convNextDate" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>তিনি ঠিক কী বলেছেন? (বিস্তারিত নোট) *</label>
+          <textarea class="input" id="convQuote" rows="4" placeholder="কে আপনাকে কী বলেছে, কী কথা দিয়েছে বা কী বিষয়ে আলোচনা হয়েছে তা হুবহু লিখে রাখুন..." required></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>বাতিল</button>
+          <button type="submit" class="btn-primary">নোট সংরক্ষণ করুন</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 3. Add Red Flag / Bad Behavior Modal -->
+    <div class="modal-card" id="redFlagModal" hidden>
+      <div class="modal-header">
+        <h3>খারাপ ব্যবহার ও সতর্কতা নোট যুক্ত করুন</h3>
+        <button class="modal-close" data-close-modal>×</button>
+      </div>
+      <form id="redFlagForm" class="modal-body">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>ব্যক্তির নাম *</label>
+            <input type="text" class="input" id="rfPerson" list="contactNamesDatalist" placeholder="যিনি খারাপ ব্যবহার করেছেন" required />
+          </div>
+          <div class="form-group">
+            <label>ঘটনার তারিখ *</label>
+            <input type="date" class="input" id="rfDate" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>মাত্রা / কেমন আচরণ ছিল? *</label>
+          <select class="input" id="rfSeverity">
+            <option value="high">🚨 গুরুতর (চরম অসম্মান / বিশ্বাসঘাতকতা / প্রতারণা)</option>
+            <option value="medium" selected>⚠️ মাঝারি (কথা দিয়ে কথা না রাখা / অবহেলা / খারাপ কথা)</option>
+            <option value="low">👀 হালকা সতর্কতা (স্বার্থপর আচরণ / দূরত্ব রাখা ভালো)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>কী ঘটেছিল এবং কী খারাপ ব্যবহার করেছে? *</label>
+          <textarea class="input" id="rfIncident" rows="3" placeholder="ঘটনাটি পরিষ্কারভাবে লিখে রাখুন..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>ভবিষ্যতের জন্য আমার সিদ্ধান্ত (Boundary Rule) *</label>
+          <input type="text" class="input" id="rfBoundary" placeholder="যেমন: আর কখনো টাকা ধার দেবো না / ব্যক্তিগত কথা শেয়ার করবো না" required />
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>বাতিল</button>
+          <button type="submit" class="btn-primary">সতর্কতা লগে যুক্ত করুন</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 4. Add Idea Modal -->
+    <div class="modal-card" id="ideaModal" hidden>
+      <div class="modal-header">
+        <h3>নতুন আইডিয়া সংরক্ষণ করুন</h3>
+        <button class="modal-close" data-close-modal>×</button>
+      </div>
+      <form id="ideaForm" class="modal-body">
+        <div class="form-group">
+          <label>আইডিয়ার শিরোনাম *</label>
+          <input type="text" class="input" id="ideaTitle" placeholder="যেমন: লোকাল সার্ভিস বুকিং ওয়েবসাইট" required />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>ক্যাটাগরি *</label>
+            <select class="input" id="ideaCategory">
+              <option value="business">💼 ব্যবসা ও আয়</option>
+              <option value="tech">💻 ওয়েবসাইট ও টেক</option>
+              <option value="content">🎬 কনটেন্ট ও মিডিয়া</option>
+              <option value="life">🌟 জীবনধারা ও ব্যক্তিগত</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>বর্তমান অবস্থা *</label>
+            <select class="input" id="ideaStage">
+              <option value="নতুন চিন্তা">💡 নতুন চিন্তা</option>
+              <option value="রিসার্চ চলছে">🔍 রিসার্চ চলছে</option>
+              <option value="কাজ শুরু হয়েছে">🚀 কাজ শুরু হয়েছে</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>বিস্তারিত পরিকল্পনা ও নোট *</label>
+          <textarea class="input" id="ideaDetails" rows="4" placeholder="আইডিয়াটি কীভাবে কাজ করবে, কী কী লাগবে তা বিস্তারিত লিখুন..." required></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>বাতিল</button>
+          <button type="submit" class="btn-primary">আইডিয়া সেভ করুন</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 5. Add Life Event Modal -->
+    <div class="modal-card" id="journalModal" hidden>
+      <div class="modal-header">
+        <h3>জীবনের নতুন ঘটনা যুক্ত করুন</h3>
+        <button class="modal-close" data-close-modal>×</button>
+      </div>
+      <form id="journalForm" class="modal-body">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>ঘটনার শিরোনাম *</label>
+            <input type="text" class="input" id="journalTitle" placeholder="যেমন: নতুন প্রজেক্টের প্রথম সফলতা" required />
+          </div>
+          <div class="form-group">
+            <label>তারিখ *</label>
+            <input type="date" class="input" id="journalDate" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>ঘটনার ধরন / অনুভূতি *</label>
+          <select class="input" id="journalMood">
+            <option value="milestone">🏆 বড় অর্জন / মাইলফলক</option>
+            <option value="lesson">📘 জীবনের শিক্ষা (Lesson Learned)</option>
+            <option value="memory">🌿 বিশেষ স্মৃতি বা ঘটনা</option>
+            <option value="challenge">⚡ কঠিন সময় ও উত্তরণ</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>কী ঘটেছিল ও ভবিষ্যতের শিক্ষা *</label>
+          <textarea class="input" id="journalStory" rows="4" placeholder="বিস্তারিত লিখুন..." required></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>বাতিল</button>
+          <button type="submit" class="btn-primary">টাইমলাইনে যুক্ত করুন</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 6. Add Finance Transaction Modal -->
+    <div class="modal-card" id="financeModal" hidden>
+      <div class="modal-header">
+        <h3>নতুন আয় বা ব্যয় যুক্ত করুন</h3>
+        <button class="modal-close" data-close-modal>×</button>
+      </div>
+      <form id="financeForm" class="modal-body">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>হিসাবের ধরন *</label>
+            <select class="input" id="finType" required>
+              <option value="expense">🔻 ব্যয় / খরচ (Expense)</option>
+              <option value="income">🔺 আয় / জমা (Income)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>টাকার পরিমাণ (৳) *</label>
+            <input type="number" class="input" id="finAmount" placeholder="যেমন: 2500" min="1" required />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>খাত / ক্যাটাগরি *</label>
+            <input type="text" class="input" id="finCategory" placeholder="যেমন: খাবার, যাতায়াত, ফ্রিল্যান্সিং, পরিবার" required />
+          </div>
+          <div class="form-group">
+            <label>তারিখ *</label>
+            <input type="date" class="input" id="finDate" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>বিবরণ / নোট *</label>
+          <input type="text" class="input" id="finNote" placeholder="কোন কাজে বা কার মাধ্যমে আয়/ব্যয় হলো?" required />
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>বাতিল</button>
+          <button type="submit" class="btn-primary">হিসাব সংরক্ষণ করুন</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 7. Global Search Modal (Cmd/Ctrl + K) -->
+    <div class="modal-card search-modal" id="searchModal" hidden>
+      <div class="search-modal-top">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="globalSearchInput" placeholder="মানুষের নাম, কে কী বলেছে, খারাপ ব্যবহার, আইডিয়া বা কাজ খুঁজুন..." autocomplete="off" />
+        <button class="modal-close" data-close-modal>ESC</button>
+      </div>
+      <div class="search-results-list" id="globalSearchResults"></div>
+    </div>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
