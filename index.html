@@ -67,6 +67,14 @@
           <span class="nav-badge nav-badge-error" id="navRedFlagsCount">0</span>
         </button>
 
+        <button class="nav-item" data-tab="work">
+          <span class="nav-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </span>
+          <span class="nav-text">Work ও Telegram কাজ</span>
+          <span class="nav-count" id="navWorkCount">0</span>
+        </button>
+
         <button class="nav-item" data-tab="tasks">
           <span class="nav-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -343,7 +351,60 @@
           <div class="stack-list" id="redFlagsList"></div>
         </section>
 
-        <!-- ==================== TAB 5: UPCOMING TASKS (সামনের কাজ) ==================== -->
+        <!-- ==================== TAB 5: WORK & TELEGRAM WORK ==================== -->
+        <section class="tab-panel" id="tab-work">
+          <div class="module-header">
+            <div>
+              <div class="hero-pills">
+                <span class="badge-primary">✈️ Telegram & Work Hub</span>
+                <span class="chip">প্রজেক্ট, চ্যানেল ও ক্লায়েন্ট কাজ</span>
+              </div>
+              <h1 class="headline-md">Work ও Telegram কাজের তালিকা</h1>
+              <p class="section-desc">আপনার টেলিগ্রাম চ্যানেল, বট, গ্রুপ ম্যানেজমেন্ট, ক্লায়েন্ট ডিল এবং অন্যান্য অফিসিয়াল বা ফ্রিল্যান্স কাজের সম্পূর্ণ ট্র্যাকার।</p>
+            </div>
+            <button class="btn-primary" id="addWorkBtn">+ নতুন Work / Telegram কাজ</button>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="card">
+              <span class="kpi-label">চলমান Work / প্রজেক্ট</span>
+              <div class="kpi-value text-primary" id="workActiveCount">0</div>
+              <div class="kpi-foot">বর্তমানে যেগুলো চলছে</div>
+            </div>
+            <div class="card">
+              <span class="kpi-label">Telegram ভিত্তিক কাজ</span>
+              <div class="kpi-value" id="workTelegramCount">0</div>
+              <div class="kpi-foot">চ্যানেল, বট বা গ্রুপ ডিল</div>
+            </div>
+            <div class="card">
+              <span class="kpi-label">সম্পন্ন হয়েছে</span>
+              <div class="kpi-value text-success" id="workDoneCount">0</div>
+              <div class="kpi-foot">সফলভাবে ডেলিভারি</div>
+            </div>
+            <div class="card">
+              <span class="kpi-label">সম্ভাব্য আয় / বাজেট</span>
+              <div class="kpi-value" id="workTotalBudget">৳ ০</div>
+              <div class="kpi-foot">চলমান কাজগুলোর মোট মূল্য</div>
+            </div>
+          </div>
+
+          <div class="filter-bar card">
+            <div class="filter-tabs" id="workCategoryFilters">
+              <button class="filter-pill active" data-wcat="all">সব Work</button>
+              <button class="filter-pill" data-wcat="telegram">✈️ Telegram Work</button>
+              <button class="filter-pill" data-wcat="bot">🤖 বট / অটোমেশন</button>
+              <button class="filter-pill" data-wcat="channel">📢 চ্যানেল / গ্রুপ</button>
+              <button class="filter-pill" data-wcat="client">💼 ক্লায়েন্ট / প্রজেক্ট</button>
+            </div>
+            <div class="filter-search">
+              <input type="text" class="input" id="workSearchInput" placeholder="কাজের নাম, @username বা ক্লায়েন্ট খুঁজুন..." />
+            </div>
+          </div>
+
+          <div class="contacts-grid" id="workGrid"></div>
+        </section>
+
+        <!-- ==================== TAB 6: UPCOMING TASKS (সামনের কাজ) ==================== -->
         <section class="tab-panel" id="tab-tasks">
           <div class="module-header">
             <div>
@@ -787,7 +848,73 @@
       </form>
     </div>
 
-    <!-- 7. Global Search Modal (Cmd/Ctrl + K) -->
+    <!-- 7. Add Work / Telegram Work Modal -->
+    <div class="modal-card" id="workModal" hidden>
+      <div class="modal-header">
+        <h3>নতুন Work / Telegram কাজ যুক্ত করুন</h3>
+        <button class="modal-close" data-close-modal>×</button>
+      </div>
+      <form id="workForm" class="modal-body">
+        <div class="form-group">
+          <label>কাজের শিরোনাম *</label>
+          <input type="text" class="input" id="workTitle" placeholder="যেমন: Telegram চ্যানেল অটো-পোস্ট বট সেটআপ" required />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>কাজের ধরন *</label>
+            <select class="input" id="workCategory">
+              <option value="telegram">✈️ Telegram Work</option>
+              <option value="bot">🤖 বট / অটোমেশন</option>
+              <option value="channel">📢 চ্যানেল / গ্রুপ ম্যানেজমেন্ট</option>
+              <option value="client">💼 ক্লায়েন্ট / প্রজেক্ট</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>অবস্থা (Status) *</label>
+            <select class="input" id="workStatus">
+              <option value="active">🚀 চলমান (In Progress)</option>
+              <option value="pending">⏳ অপেক্ষমাণ (Pending)</option>
+              <option value="done">✅ সম্পন্ন (Completed)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Telegram @username বা লিংক</label>
+            <input type="text" class="input" id="workTelegramHandle" placeholder="যেমন: @tasin_channel বা t.me/..." />
+          </div>
+          <div class="form-group">
+            <label>ক্লায়েন্ট / দায়িত্বশীল ব্যক্তি</label>
+            <input type="text" class="input" id="workClient" list="contactNamesDatalist" placeholder="কার কাজ বা কার সাথে ডিল?" />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>বাজেট / পেমেন্ট (৳)</label>
+            <input type="number" class="input" id="workBudget" placeholder="যেমন: 5000" min="0" />
+          </div>
+          <div class="form-group">
+            <label>ডেডলাইন / শেষ তারিখ</label>
+            <input type="date" class="input" id="workDeadline" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>কাজের বিস্তারিত নোট *</label>
+          <textarea class="input" id="workNotes" rows="3" placeholder="কী কী করতে হবে, কোন গ্রুপ/চ্যানেলের কাজ, শর্তাবলি লিখুন..." required></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>বাতিল</button>
+          <button type="submit" class="btn-primary">Work সংরক্ষণ করুন</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 8. Global Search Modal (Cmd/Ctrl + K) -->
     <div class="modal-card search-modal" id="searchModal" hidden>
       <div class="search-modal-top">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -227,6 +227,41 @@ const DEFAULT_DATA = {
       date: getRelativeDate(-2),
       note: 'মিটিং ও কফি আড্ডা'
     }
+  ],
+  work: [
+    {
+      id: 'w1',
+      title: 'Telegram চ্যানেল অটো-পোস্টিং ও বট ম্যানেজমেন্ট',
+      category: 'telegram',
+      status: 'active',
+      handle: '@tasin_updates',
+      client: 'নিজস্ব চ্যানেল',
+      budget: 0,
+      deadline: getRelativeDate(7),
+      notes: 'প্রতিদিন নিয়মিত কন্টেন্ট শেডিউল করা এবং সাবস্ক্রাইবার অ্যাক্টিভিটি চেক করা।'
+    },
+    {
+      id: 'w2',
+      title: 'ক্লায়েন্ট টেলিগ্রাম সাপোর্ট ও প্রাইভেট গ্রুপ বট সেটআপ',
+      category: 'bot',
+      status: 'active',
+      handle: '@client_support_bot',
+      client: 'আরিফুল হক',
+      budget: 8500,
+      deadline: getRelativeDate(5),
+      notes: 'মেম্বার ভেরিফিকেশন ও পেমেন্ট অ্যালার্ট বট তৈরি করে ডেলিভারি দিতে হবে।'
+    },
+    {
+      id: 'w3',
+      title: 'Telegram প্রমোশন ও অ্যাড ডিল সমন্বয়',
+      category: 'channel',
+      status: 'pending',
+      handle: '@bd_tech_hub',
+      client: 'রাশেদুল ইসলাম ভাই',
+      budget: 4500,
+      deadline: getRelativeDate(12),
+      notes: 'সাপ্তাহিক স্পনসর পোস্ট ও চ্যানেল কোলাবরেশন নিয়ে চূড়ান্ত কথা বলতে হবে।'
+    }
   ]
 };
 
@@ -236,6 +271,7 @@ let activeContactFilter = 'all';
 let activeConvFilter = 'all';
 let activeIdeaFilter = 'all';
 let activeFinanceFilter = 'all';
+let activeWorkFilter = 'all';
 
 function loadState() {
   try {
@@ -244,7 +280,11 @@ function loadState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
       return JSON.parse(JSON.stringify(DEFAULT_DATA));
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed.work)) {
+      parsed.work = JSON.parse(JSON.stringify(DEFAULT_DATA.work));
+    }
+    return parsed;
   } catch (e) {
     console.error('Failed to load state:', e);
     return JSON.parse(JSON.stringify(DEFAULT_DATA));
@@ -334,6 +374,7 @@ function renderAll() {
   renderContacts();
   renderConversations();
   renderRedFlags();
+  renderWork();
   renderTasks();
   renderIdeas();
   renderJournal();
@@ -356,6 +397,7 @@ function renderTopbarAndBadges() {
   document.getElementById('navContactsCount').textContent = formatBanglaNumber(state.contacts.length);
   document.getElementById('navConvCount').textContent = formatBanglaNumber(state.conversations.length);
   document.getElementById('navRedFlagsCount').textContent = formatBanglaNumber(state.redFlags.length);
+  document.getElementById('navWorkCount').textContent = formatBanglaNumber((state.work || []).filter(w => w.status !== 'done').length);
   document.getElementById('navTasksCount').textContent = formatBanglaNumber(state.tasks.filter(t => !t.done).length);
   document.getElementById('navIdeasCount').textContent = formatBanglaNumber(state.ideas.length);
   document.getElementById('navJournalCount').textContent = formatBanglaNumber(state.journal.length);
@@ -690,6 +732,120 @@ window.deleteRedFlag = function(id) {
 };
 
 // ==========================================================================
+// WORK & TELEGRAM WORK
+// ==========================================================================
+function renderWork() {
+  const workList = state.work || [];
+  const activeItems = workList.filter(w => w.status === 'active');
+  const tgItems = workList.filter(w => ['telegram', 'bot', 'channel'].includes(w.category));
+  const doneItems = workList.filter(w => w.status === 'done');
+  const totalBudget = workList
+    .filter(w => w.status !== 'done')
+    .reduce((sum, w) => sum + Number(w.budget || 0), 0);
+
+  document.getElementById('workActiveCount').textContent = formatBanglaNumber(activeItems.length);
+  document.getElementById('workTelegramCount').textContent = formatBanglaNumber(tgItems.length);
+  document.getElementById('workDoneCount').textContent = formatBanglaNumber(doneItems.length);
+  document.getElementById('workTotalBudget').textContent = `৳ ${formatBanglaNumber(totalBudget)}`;
+
+  const grid = document.getElementById('workGrid');
+  const query = (document.getElementById('workSearchInput')?.value || '').trim().toLowerCase();
+
+  const catLabels = {
+    telegram: '✈️ Telegram Work',
+    bot: '🤖 বট / অটোমেশন',
+    channel: '📢 চ্যানেল / গ্রুপ',
+    client: '💼 ক্লায়েন্ট / প্রজেক্ট'
+  };
+
+  const statusPills = {
+    active: '<span class="badge-primary">🚀 চলমান</span>',
+    pending: '<span class="badge-warning">⏳ অপেক্ষমাণ</span>',
+    done: '<span class="badge-success">✅ সম্পন্ন</span>'
+  };
+
+  const filtered = workList.filter(w => {
+    if (activeWorkFilter !== 'all' && w.category !== activeWorkFilter) return false;
+    if (query) {
+      const hay = `${w.title} ${w.handle} ${w.client} ${w.notes}`.toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;">এই ফিল্টারে কোনো Work বা Telegram কাজ পাওয়া যায়নি।</div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(w => {
+    const cleanHandle = (w.handle || '').trim();
+    let handleHTML = 'দেওয়া নেই';
+    if (cleanHandle) {
+      const tgUrl = cleanHandle.startsWith('http')
+        ? cleanHandle
+        : `https://t.me/${cleanHandle.replace(/^@/, '')}`;
+      handleHTML = `<a href="${escapeHTML(tgUrl)}" target="_blank" rel="noopener" style="color:var(--link); text-decoration:none;">${escapeHTML(cleanHandle)} ↗</a>`;
+    }
+
+    return `
+      <div class="card contact-card">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <span class="chip">${catLabels[w.category] || '💼 Work'}</span>
+            ${statusPills[w.status] || statusPills.active}
+          </div>
+
+          <h3 class="idea-title" style="margin-top:0;">${escapeHTML(w.title)}</h3>
+
+          <div class="contact-schedule-box" style="margin-top:12px;">
+            <div class="schedule-item">
+              <span>Telegram / লিংক</span>
+              <strong>${handleHTML}</strong>
+            </div>
+            <div class="schedule-item">
+              <span>ক্লায়েন্ট / দায়িত্বশীল</span>
+              <strong>${escapeHTML(w.client || 'নিজস্ব')}</strong>
+            </div>
+            <div class="schedule-item">
+              <span>বাজেট / পেমেন্ট</span>
+              <strong>${w.budget ? `৳ ${formatBanglaNumber(w.budget)}` : 'নির্ধারিত নয়'}</strong>
+            </div>
+            <div class="schedule-item">
+              <span>ডেডলাইন</span>
+              <strong>${w.deadline ? formatBanglaDate(w.deadline) : 'নির্ধারিত নেই'}</strong>
+            </div>
+          </div>
+
+          ${w.notes ? `<div class="contact-note-box" style="margin-top: 12px;">${escapeHTML(w.notes)}</div>` : ''}
+        </div>
+
+        <div class="contact-actions">
+          <button class="btn-primary btn-sm" onclick="toggleWorkStatus('${w.id}')">
+            ${w.status === 'done' ? '↺ আবার চালু করুন' : '✓ সম্পন্ন হয়েছে'}
+          </button>
+          <button class="btn-danger-ghost" onclick="deleteWork('${w.id}')">মুছুন</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.toggleWorkStatus = function(id) {
+  const item = (state.work || []).find(w => w.id === id);
+  if (!item) return;
+  item.status = item.status === 'done' ? 'active' : 'done';
+  saveState();
+  showToast(item.status === 'done' ? 'কাজটি সম্পন্ন হিসেবে চিহ্নিত হয়েছে!' : 'কাজটি আবার চলমান করা হয়েছে।');
+};
+
+window.deleteWork = function(id) {
+  state.work = (state.work || []).filter(w => w.id !== id);
+  saveState();
+  showToast('Work আইটেমটি মুছে ফেলা হয়েছে।');
+};
+
+// ==========================================================================
 // UPCOMING TASKS (সামনের কাজ)
 // ==========================================================================
 function renderTasks() {
@@ -929,6 +1085,7 @@ const TAB_TITLES = {
   contacts: 'পরিচিত মানুষ ও যোগাযোগ (Level 1, 2, 3)',
   conversations: 'কে আমাকে কী বলেছে ও কথা নোট',
   redflags: 'খারাপ ব্যবহার ও সতর্কতা লগ',
+  work: 'Work ও Telegram কাজ',
   tasks: 'সামনের কাজ ও পরিকল্পনা',
   ideas: 'আমার আইডিয়া ভল্ট',
   journal: 'জীবনের ঘটনা ও ডায়েরি',
@@ -997,6 +1154,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('quickLogConvBtn').addEventListener('click', () => openModal('convModal'));
   document.getElementById('addConvBtn').addEventListener('click', () => openModal('convModal'));
   document.getElementById('addRedFlagBtn').addEventListener('click', () => openModal('redFlagModal'));
+  document.getElementById('addWorkBtn').addEventListener('click', () => openModal('workModal'));
   document.getElementById('addIdeaBtn').addEventListener('click', () => openModal('ideaModal'));
   document.getElementById('addJournalBtn').addEventListener('click', () => openModal('journalModal'));
   document.getElementById('addFinanceBtn').addEventListener('click', () => openModal('financeModal'));
@@ -1053,6 +1211,17 @@ document.addEventListener('DOMContentLoaded', () => {
     activeFinanceFilter = btn.dataset.fintype;
     renderFinance();
   });
+
+  // Filter Pills — Work & Telegram
+  document.getElementById('workCategoryFilters').addEventListener('click', e => {
+    const btn = e.target.closest('.filter-pill');
+    if (!btn) return;
+    document.querySelectorAll('#workCategoryFilters .filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeWorkFilter = btn.dataset.wcat;
+    renderWork();
+  });
+  document.getElementById('workSearchInput').addEventListener('input', renderWork);
 
   // Form Submissions
   document.getElementById('contactForm').addEventListener('submit', e => {
@@ -1182,6 +1351,26 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('আয়-ব্যয়ের হিসাব সংরক্ষিত হয়েছে!');
   });
 
+  document.getElementById('workForm').addEventListener('submit', e => {
+    e.preventDefault();
+    if (!Array.isArray(state.work)) state.work = [];
+    state.work.unshift({
+      id: 'w_' + Date.now(),
+      title: document.getElementById('workTitle').value.trim(),
+      category: document.getElementById('workCategory').value,
+      status: document.getElementById('workStatus').value,
+      handle: document.getElementById('workTelegramHandle').value.trim(),
+      client: document.getElementById('workClient').value.trim(),
+      budget: Number(document.getElementById('workBudget').value || 0),
+      deadline: document.getElementById('workDeadline').value,
+      notes: document.getElementById('workNotes').value.trim()
+    });
+    e.target.reset();
+    closeAllModals();
+    saveState();
+    showToast('নতুন Work / Telegram কাজ যুক্ত হয়েছে!');
+  });
+
   // Global Search (Ctrl/Cmd + K)
   document.getElementById('openSearchBtn').addEventListener('click', () => {
     openModal('searchModal');
@@ -1266,6 +1455,11 @@ function renderGlobalSearch(query) {
   state.ideas.forEach(i => {
     if (!q || `${i.title} ${i.details}`.toLowerCase().includes(q)) {
       items.push({ tab: 'ideas', badge: 'আইডিয়া', title: i.title, sub: i.stage });
+    }
+  });
+  (state.work || []).forEach(w => {
+    if (!q || `${w.title} ${w.handle} ${w.client} ${w.notes}`.toLowerCase().includes(q)) {
+      items.push({ tab: 'work', badge: '✈️ Work', title: w.title, sub: w.handle || w.client });
     }
   });
 
