@@ -8,9 +8,9 @@ const USERS_KEY = 'tasin_os_users_v1';
 const SESSION_KEY = 'tasin_os_session_v1';
 const SUPABASE_CONFIG_KEY = 'tasin_os_supabase_config_v1';
 
-// Optional: You can paste your Supabase URL and Anon Key directly here to pre-configure for all devices
-const DEFAULT_SUPABASE_URL = '';
-const DEFAULT_SUPABASE_ANON_KEY = '';
+// Pre-configured Supabase Project (TasinCR7's Project)
+const DEFAULT_SUPABASE_URL = 'https://uezrdvjbazehzjorhfrl.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_jcSthwFxzUPKKEi5i5cjDA_gZG94j_h';
 let sbClient = null;
 
 // Helper to get relative date string (YYYY-MM-DD)
