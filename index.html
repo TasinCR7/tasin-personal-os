@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=2" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -59,6 +59,15 @@
           <input type="password" class="input" id="signupPassword" placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড" minlength="6" required />
         </div>
         <button type="submit" class="btn-primary w-full" style="margin-top: 4px;">অ্যাকাউন্ট তৈরি করুন</button>
+      </form>
+
+      <!-- New Password Recovery Form -->
+      <form id="resetPasswordForm" class="auth-form" hidden>
+        <div class="form-group">
+          <label>নতুন পাসওয়ার্ড লিখুন *</label>
+          <input type="password" class="input" id="newRecoveryPassword" placeholder="কমপক্ষে ৬ অক্ষরের নতুন পাসওয়ার্ড" minlength="6" required />
+        </div>
+        <button type="submit" class="btn-primary w-full">নতুন পাসওয়ার্ড সেভ করুন</button>
       </form>
 
       <p class="auth-footnote" id="authStorageNote">
@@ -1025,6 +1034,6 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast" hidden></div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

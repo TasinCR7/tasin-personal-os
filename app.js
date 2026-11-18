@@ -1480,6 +1480,44 @@ async function setupAuth() {
     showToast('আপনার ইমেইলে পাসওয়ার্ড রিসেট লিংক পাঠানো হয়েছে!');
   });
 
+  // Handle Supabase Password Recovery redirect
+  if (sbClient) {
+    sbClient.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        document.getElementById('authScreen').hidden = false;
+        document.getElementById('appShell').hidden = true;
+        loginForm.hidden = true;
+        signupForm.hidden = true;
+        document.getElementById('resetPasswordForm').hidden = false;
+        showToast('এখন আপনার নতুন পাসওয়ার্ড লিখুন।');
+      }
+    });
+  }
+
+  document.getElementById('resetPasswordForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearAuthAlert();
+    const newPassword = document.getElementById('newRecoveryPassword').value;
+    if (!sbClient) return;
+    const { data, error } = await sbClient.auth.updateUser({ password: newPassword });
+    if (error) {
+      showAuthAlert(translateAuthError(error.message));
+      return;
+    }
+    document.getElementById('resetPasswordForm').hidden = true;
+    loginForm.hidden = false;
+    if (data && data.user) {
+      const fullName = data.user.user_metadata?.full_name || data.user.email.split('@')[0];
+      await enterWorkspace({
+        id: data.user.id,
+        name: fullName,
+        identifier: data.user.email,
+        isCloud: true
+      });
+    }
+    showToast('পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!');
+  });
+
   // Restore session (Cloud first if configured, else Local)
   if (sbClient) {
     const { data } = await sbClient.auth.getSession();
