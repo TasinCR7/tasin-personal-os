@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2" />
+  <link rel="stylesheet" href="styles.css?v=3" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -33,14 +33,17 @@
       <!-- Login Form -->
       <form id="loginForm" class="auth-form">
         <div class="form-group">
-          <label>ইমেইল বা ইউজারনেম *</label>
-          <input type="text" class="input" id="loginIdentifier" placeholder="যেমন: tasin@example.com" required />
+          <label>ইমেইল *</label>
+          <input type="email" class="input" id="loginIdentifier" placeholder="যেমন: tasin@gmail.com" required />
         </div>
         <div class="form-group">
           <label>পাসওয়ার্ড *</label>
-          <input type="password" class="input" id="loginPassword" placeholder="আপনার পাসওয়ার্ড লিখুন" required />
+          <div class="password-wrap">
+            <input type="password" class="input" id="loginPassword" placeholder="আপনার পাসওয়ার্ড লিখুন" required />
+            <button type="button" class="password-toggle" data-toggle-pass="loginPassword" title="পাসওয়ার্ড দেখুন">👁️</button>
+          </div>
         </div>
-        <button type="submit" class="btn-primary w-full" style="margin-top: 4px;">ওয়ার্কস্পেসে প্রবেশ করুন</button>
+        <button type="submit" class="btn-primary w-full" id="loginSubmitBtn" style="margin-top: 4px;">ওয়ার্কস্পেসে প্রবেশ করুন</button>
         <button type="button" class="btn-link" id="forgotPasswordBtn" style="align-self:center; font-size:13px; margin-top:4px;">পাসওয়ার্ড ভুলে গেছেন?</button>
       </form>
 
@@ -51,33 +54,47 @@
           <input type="text" class="input" id="signupName" placeholder="যেমন: তাসিন আহমেদ" required />
         </div>
         <div class="form-group">
-          <label>ইমেইল বা ইউজারনেম *</label>
-          <input type="text" class="input" id="signupIdentifier" placeholder="যেমন: tasin@example.com" required />
+          <label>ইমেইল *</label>
+          <input type="email" class="input" id="signupIdentifier" placeholder="যেমন: tasin@gmail.com" required />
         </div>
         <div class="form-group">
           <label>নতুন পাসওয়ার্ড *</label>
-          <input type="password" class="input" id="signupPassword" placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড" minlength="6" required />
+          <div class="password-wrap">
+            <input type="password" class="input" id="signupPassword" placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড" minlength="6" required />
+            <button type="button" class="password-toggle" data-toggle-pass="signupPassword" title="পাসওয়ার্ড দেখুন">👁️</button>
+          </div>
         </div>
-        <button type="submit" class="btn-primary w-full" style="margin-top: 4px;">অ্যাকাউন্ট তৈরি করুন</button>
+        <button type="submit" class="btn-primary w-full" id="signupSubmitBtn" style="margin-top: 4px;">অ্যাকাউন্ট তৈরি করুন</button>
       </form>
 
       <!-- New Password Recovery Form -->
       <form id="resetPasswordForm" class="auth-form" hidden>
         <div class="form-group">
           <label>নতুন পাসওয়ার্ড লিখুন *</label>
-          <input type="password" class="input" id="newRecoveryPassword" placeholder="কমপক্ষে ৬ অক্ষরের নতুন পাসওয়ার্ড" minlength="6" required />
+          <div class="password-wrap">
+            <input type="password" class="input" id="newRecoveryPassword" placeholder="কমপক্ষে ৬ অক্ষরের নতুন পাসওয়ার্ড" minlength="6" required />
+            <button type="button" class="password-toggle" data-toggle-pass="newRecoveryPassword" title="পাসওয়ার্ড দেখুন">👁️</button>
+          </div>
         </div>
-        <button type="submit" class="btn-primary w-full">নতুন পাসওয়ার্ড সেভ করুন</button>
+        <button type="submit" class="btn-primary w-full" id="resetSubmitBtn">নতুন পাসওয়ার্ড সেভ করুন</button>
       </form>
 
+      <div class="auth-divider"><span>অথবা</span></div>
+
+      <button type="button" class="btn-secondary w-full" id="guestAccessBtn">
+        🚀 সরাসরি ওয়ার্কস্পেসে প্রবেশ করুন (লগইন ছাড়াই)
+      </button>
+
       <p class="auth-footnote" id="authStorageNote">
-        🔒 আপনার সব তথ্য এনক্রিপ্টেড পাসওয়ার্ডের মাধ্যমে নিরাপদভাবে সংরক্ষিত থাকে।
+        🔒 আপনার সব তথ্য নিরাপদভাবে সংরক্ষিত থাকে।
       </p>
       <button type="button" class="btn-outline w-full" id="openSupabaseSetupFromAuth" style="height:34px;">
-        ☁️ Supabase ক্লাউড সংযোগ সেটআপ করুন
+        ☁️ Supabase ক্লাউড সংযোগ সেটআপ / পরিবর্তন
       </button>
     </div>
   </div>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
 
   <div class="app-shell" id="appShell" hidden>
     <!-- Left Sidebar (Notion Minimal Pro Workspace Navigation) -->
@@ -1034,6 +1051,6 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast" hidden></div>
 
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

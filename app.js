@@ -7,6 +7,7 @@ const STORAGE_KEY = 'tasin_personal_os_v1';
 const USERS_KEY = 'tasin_os_users_v1';
 const SESSION_KEY = 'tasin_os_session_v1';
 const SUPABASE_CONFIG_KEY = 'tasin_os_supabase_config_v1';
+const FORCE_LOCAL_KEY = 'tasin_os_force_local_v1';
 
 // Pre-configured Supabase Project (TasinCR7's Project)
 const DEFAULT_SUPABASE_URL = 'https://uezrdvjbazehzjorhfrl.supabase.co';
@@ -328,6 +329,9 @@ function loadState() {
 }
 
 function getSupabaseConfig() {
+  if (localStorage.getItem(FORCE_LOCAL_KEY) === '1') {
+    return null;
+  }
   try {
     const saved = JSON.parse(localStorage.getItem(SUPABASE_CONFIG_KEY) || 'null');
     if (saved && saved.url && saved.key) return saved;
@@ -342,9 +346,14 @@ function getSupabaseConfig() {
 
 function initSupabaseClient() {
   const cfg = getSupabaseConfig();
-  if (cfg && window.supabase && typeof window.supabase.createClient === 'function') {
-    sbClient = window.supabase.createClient(cfg.url, cfg.key);
-  } else {
+  try {
+    if (cfg && window.supabase && typeof window.supabase.createClient === 'function') {
+      sbClient = window.supabase.createClient(cfg.url, cfg.key);
+    } else {
+      sbClient = null;
+    }
+  } catch (err) {
+    console.error('Supabase init failed:', err);
     sbClient = null;
   }
   updateCloudStatusUI();
@@ -716,7 +725,7 @@ function renderContacts() {
         <div class="contact-actions">
           <button class="btn-primary btn-sm" onclick="markContactedToday('${c.id}')">✓ আজ যোগাযোগ সম্পন্ন</button>
           <div style="display:flex; gap:6px;">
-            <button class="btn-outline" onclick="openQuickNoteForPerson('${escapeHTML(c.name)}')">+ কথা নোট</button>
+            <button class="btn-outline" onclick="openQuickNoteForPersonById('${c.id}')">+ কথা নোট</button>
             <button class="btn-danger-ghost" onclick="deleteContact('${c.id}')">মুছুন</button>
           </div>
         </div>
@@ -739,9 +748,10 @@ window.deleteContact = function(contactId) {
   showToast('পরিচিত ব্যক্তির তথ্য মুছে ফেলা হয়েছে।');
 };
 
-window.openQuickNoteForPerson = function(personName) {
+window.openQuickNoteForPersonById = function(contactId) {
+  const contact = state.contacts.find(c => c.id === contactId);
   openModal('convModal');
-  document.getElementById('convPerson').value = personName;
+  document.getElementById('convPerson').value = contact ? contact.name : '';
   document.getElementById('convDate').value = getRelativeDate(0);
 };
 
@@ -1207,6 +1217,8 @@ function switchTab(tabId) {
   });
   document.getElementById('topbarTitle').textContent = TAB_TITLES[tabId] || 'ওয়ার্কস্পেস';
   document.getElementById('sidebar').classList.remove('open');
+  const sbBackdrop = document.getElementById('sidebarBackdrop');
+  if (sbBackdrop) sbBackdrop.hidden = true;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1225,9 +1237,10 @@ function closeAllModals() {
   });
 }
 
-function showAuthAlert(msg) {
+function showAuthAlert(msg, isSuccess = false) {
   const alertEl = document.getElementById('authAlert');
   alertEl.textContent = msg;
+  alertEl.classList.toggle('success', Boolean(isSuccess));
   alertEl.hidden = false;
 }
 
@@ -1319,6 +1332,7 @@ async function setupAuth() {
     e.preventDefault();
     const url = document.getElementById('sbUrlInput').value.trim();
     const key = document.getElementById('sbKeyInput').value.trim();
+    localStorage.removeItem(FORCE_LOCAL_KEY);
     localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify({ url, key }));
     initSupabaseClient();
     closeAllModals();
@@ -1326,10 +1340,33 @@ async function setupAuth() {
   });
 
   document.getElementById('disconnectSupabaseBtn').addEventListener('click', () => {
+    localStorage.setItem(FORCE_LOCAL_KEY, '1');
     localStorage.removeItem(SUPABASE_CONFIG_KEY);
     initSupabaseClient();
     closeAllModals();
-    showToast('লোকাল মোডে ফিরে আসা হয়েছে।');
+    showToast('লোকাল মোডে ফিরে আসা হয়েছে! এখন ব্রাউজারেই সরাসরি অ্যাকাউন্ট তৈরি করতে পারবেন।');
+  });
+
+  // One-click Guest / Direct access so user is never locked out
+  document.getElementById('guestAccessBtn').addEventListener('click', async () => {
+    await enterWorkspace({
+      id: 'guest_local',
+      name: 'তাসিন',
+      identifier: 'লোকাল ওয়ার্কস্পেস (গেস্ট মোড)',
+      isCloud: false,
+      isGuest: true
+    });
+    showToast('ওয়ার্কস্পেসে স্বাগতম!');
+  });
+
+  // Password show/hide toggles
+  document.querySelectorAll('[data-toggle-pass]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.togglePass);
+      if (!target) return;
+      target.type = target.type === 'password' ? 'text' : 'password';
+      btn.textContent = target.type === 'password' ? '👁️' : '🙈';
+    });
   });
 
   authTabs.addEventListener('click', e => {
@@ -1346,34 +1383,47 @@ async function setupAuth() {
   signupForm.addEventListener('submit', async e => {
     e.preventDefault();
     clearAuthAlert();
+    const btn = document.getElementById('signupSubmitBtn');
     const name = document.getElementById('signupName').value.trim();
     const identifier = document.getElementById('signupIdentifier').value.trim().toLowerCase();
     const password = document.getElementById('signupPassword').value;
 
     // Cloud Sign Up via Supabase
     if (sbClient) {
-      const { data, error } = await sbClient.auth.signUp({
-        email: identifier,
-        password,
-        options: { data: { full_name: name } }
-      });
-      if (error) {
-        showAuthAlert(translateAuthError(error.message));
-        return;
-      }
-      if (data.user && !data.session) {
-        showToast('আপনার ইমেইলে ভেরিফিকেশন লিংক পাঠানো হয়েছে। কনফার্ম করে লগইন করুন!');
-        return;
-      }
-      if (data.user) {
-        signupForm.reset();
-        await enterWorkspace({
-          id: data.user.id,
-          name,
-          identifier: data.user.email,
-          isCloud: true
+      btn.disabled = true;
+      btn.textContent = 'অপেক্ষা করুন...';
+      try {
+        const { data, error } = await sbClient.auth.signUp({
+          email: identifier,
+          password,
+          options: {
+            data: { full_name: name },
+            emailRedirectTo: window.location.origin
+          }
         });
-        showToast(`স্বাগতম ${name}! Supabase ক্লাউড অ্যাকাউন্ট তৈরি হয়েছে।`);
+        if (error) {
+          showAuthAlert(translateAuthError(error.message));
+          return;
+        }
+        if (data.user && !data.session) {
+          showAuthAlert('আপনার ইমেইলে ভেরিফিকেশন লিংক পাঠানো হয়েছে। Gmail ইনবক্স/স্প্যাম চেক করে কনফার্ম করে লগইন করুন!', true);
+          return;
+        }
+        if (data.user) {
+          signupForm.reset();
+          await enterWorkspace({
+            id: data.user.id,
+            name,
+            identifier: data.user.email,
+            isCloud: true
+          });
+          showToast(`স্বাগতম ${name}! Supabase ক্লাউড অ্যাকাউন্ট তৈরি হয়েছে।`);
+        }
+      } catch (err) {
+        showAuthAlert('নেটওয়ার্ক সমস্যা হয়েছে। আবার চেষ্টা করুন অথবা নিচে "সরাসরি ওয়ার্কস্পেসে প্রবেশ করুন" বাটনে ক্লিক করুন।');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'অ্যাকাউন্ট তৈরি করুন';
       }
       return;
     }
@@ -1411,29 +1461,39 @@ async function setupAuth() {
   loginForm.addEventListener('submit', async e => {
     e.preventDefault();
     clearAuthAlert();
+    const btn = document.getElementById('loginSubmitBtn');
     const identifier = document.getElementById('loginIdentifier').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value;
 
     // Cloud Login via Supabase
     if (sbClient) {
-      const { data, error } = await sbClient.auth.signInWithPassword({
-        email: identifier,
-        password
-      });
-      if (error) {
-        showAuthAlert(translateAuthError(error.message));
-        return;
-      }
-      if (data.user) {
-        const fullName = data.user.user_metadata?.full_name || data.user.email.split('@')[0];
-        loginForm.reset();
-        await enterWorkspace({
-          id: data.user.id,
-          name: fullName,
-          identifier: data.user.email,
-          isCloud: true
+      btn.disabled = true;
+      btn.textContent = 'লগইন হচ্ছে...';
+      try {
+        const { data, error } = await sbClient.auth.signInWithPassword({
+          email: identifier,
+          password
         });
-        showToast(`স্বাগতম, ${fullName}! (Supabase ক্লাউড সিঙ্ক সচল)`);
+        if (error) {
+          showAuthAlert(translateAuthError(error.message));
+          return;
+        }
+        if (data.user) {
+          const fullName = data.user.user_metadata?.full_name || data.user.email.split('@')[0];
+          loginForm.reset();
+          await enterWorkspace({
+            id: data.user.id,
+            name: fullName,
+            identifier: data.user.email,
+            isCloud: true
+          });
+          showToast(`স্বাগতম, ${fullName}! (Supabase ক্লাউড সিঙ্ক সচল)`);
+        }
+      } catch (err) {
+        showAuthAlert('লগইনে নেটওয়ার্ক সমস্যা হয়েছে। আবার চেষ্টা করুন অথবা "সরাসরি ওয়ার্কস্পেসে প্রবেশ করুন" ব্যবহার করুন।');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'ওয়ার্কস্পেসে প্রবেশ করুন';
       }
       return;
     }
@@ -1470,14 +1530,18 @@ async function setupAuth() {
       showAuthAlert('লোকাল মোডে পাসওয়ার্ড রিসেট করা যায় না।');
       return;
     }
-    const { error } = await sbClient.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin
-    });
-    if (error) {
-      showAuthAlert(translateAuthError(error.message));
-      return;
+    try {
+      const { error } = await sbClient.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      });
+      if (error) {
+        showAuthAlert(translateAuthError(error.message));
+        return;
+      }
+      showAuthAlert('আপনার ইমেইলে পাসওয়ার্ড রিসেট লিংক পাঠানো হয়েছে! Gmail Inbox/Spam চেক করুন।', true);
+    } catch {
+      showAuthAlert('রিসেট লিংক পাঠাতে সমস্যা হয়েছে। একটু পর আবার চেষ্টা করুন।');
     }
-    showToast('আপনার ইমেইলে পাসওয়ার্ড রিসেট লিংক পাঠানো হয়েছে!');
   });
 
   // Handle Supabase Password Recovery redirect
@@ -1519,32 +1583,48 @@ async function setupAuth() {
   });
 
   // Restore session (Cloud first if configured, else Local)
-  if (sbClient) {
-    const { data } = await sbClient.auth.getSession();
-    if (data && data.session && data.session.user) {
-      const u = data.session.user;
-      const fullName = u.user_metadata?.full_name || u.email.split('@')[0];
+  const isRecoveryHash = window.location.hash.includes('type=recovery');
+  if (sbClient && !isRecoveryHash) {
+    try {
+      const { data } = await sbClient.auth.getSession();
+      if (data && data.session && data.session.user) {
+        const u = data.session.user;
+        const fullName = u.user_metadata?.full_name || u.email.split('@')[0];
+        await enterWorkspace({
+          id: u.id,
+          name: fullName,
+          identifier: u.email,
+          isCloud: true
+        });
+        return;
+      }
+    } catch (err) {
+      console.error('Session restore failed:', err);
+    }
+  }
+
+  // Restore local or guest session if present
+  try {
+    const savedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    if (savedSession && savedSession.id === 'guest_local') {
       await enterWorkspace({
-        id: u.id,
-        name: fullName,
-        identifier: u.email,
-        isCloud: true
+        id: 'guest_local',
+        name: 'তাসিন',
+        identifier: 'লোকাল ওয়ার্কস্পেস (গেস্ট মোড)',
+        isCloud: false,
+        isGuest: true
       });
       return;
     }
-  } else {
-    try {
-      const savedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-      if (savedSession && savedSession.id) {
-        const user = getUsers().find(u => u.id === savedSession.id);
-        if (user) {
-          await enterWorkspace(user);
-          return;
-        }
+    if (savedSession && savedSession.id) {
+      const user = getUsers().find(u => u.id === savedSession.id);
+      if (user) {
+        await enterWorkspace(user);
+        return;
       }
-    } catch {
-      // Ignore invalid session
     }
+  } catch {
+    // Ignore invalid session
   }
 }
 
@@ -1574,8 +1654,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Mobile menu toggle
+  const sidebarEl = document.getElementById('sidebar');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
   document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('open');
+    const isOpen = sidebarEl.classList.toggle('open');
+    sidebarBackdrop.hidden = !isOpen;
+  });
+  sidebarBackdrop.addEventListener('click', () => {
+    sidebarEl.classList.remove('open');
+    sidebarBackdrop.hidden = true;
   });
 
   // Open Modal Buttons
