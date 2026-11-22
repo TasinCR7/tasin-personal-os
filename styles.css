@@ -1463,6 +1463,195 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
+   DARK MODE, PRIVACY BLUR, BIRTHDAYS, HABITS & PROFILE 360
+   ========================================================================== */
+body.dark-mode {
+  --primary: #4A9EFF;
+  --primary-hover: #3589EC;
+  --primary-soft: rgba(74, 158, 255, 0.14);
+  --surface: #191919;
+  --surface-subtle: #202020;
+  --surface-hover: #2A2A2A;
+  --neutral: #F5F5F5;
+  --neutral-strong: #EAEAEA;
+  --neutral-muted: #9B9B9B;
+  --border: rgba(255, 255, 255, 0.11);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --success: #34D058;
+  --success-soft: rgba(52, 208, 88, 0.14);
+  --warning: #F5C542;
+  --warning-soft: rgba(245, 197, 66, 0.15);
+  --error: #F97066;
+  --error-soft: rgba(249, 112, 102, 0.15);
+  --on-surface: #F0F0F0;
+  --on-primary: #FFFFFF;
+  --link: #5CA9FF;
+}
+
+body.dark-mode .topbar {
+  background-color: rgba(25, 25, 25, 0.92);
+}
+
+body.dark-mode .error-banner {
+  color: #FCA5A5;
+}
+
+body.dark-mode .workspace-avatar {
+  background-color: var(--primary);
+  color: #FFFFFF;
+}
+
+/* Privacy Blur Mode */
+body.privacy-blur .sensitive-val,
+body.privacy-blur #dashNetBalance,
+body.privacy-blur #dashIncomeExpenseFoot,
+body.privacy-blur #finTotalIncome,
+body.privacy-blur #finTotalExpense,
+body.privacy-blur #finNetBalance,
+body.privacy-blur #workTotalBudget,
+body.privacy-blur .redflag-item .list-item-body,
+body.privacy-blur .redflag-item .boundary-box,
+body.privacy-blur .contact-redflag-alert {
+  filter: blur(7px);
+  transition: filter 0.18s ease;
+  user-select: none;
+}
+
+body.privacy-blur .sensitive-val:hover,
+body.privacy-blur #dashNetBalance:hover,
+body.privacy-blur #finTotalIncome:hover,
+body.privacy-blur #finTotalExpense:hover,
+body.privacy-blur #finNetBalance:hover,
+body.privacy-blur .redflag-item:hover .list-item-body,
+body.privacy-blur .redflag-item:hover .boundary-box {
+  filter: none;
+}
+
+/* Birthday Banner */
+.birthday-banner {
+  background-color: var(--primary-soft);
+  border: 1px solid rgba(0, 91, 171, 0.22);
+  color: var(--neutral-strong);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.birthday-banner[hidden] {
+  display: none !important;
+}
+
+/* Contact Quick Communication Row (WhatsApp / Call / Telegram) */
+.contact-comm-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.comm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background-color: var(--surface-subtle);
+  color: var(--neutral-strong);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.comm-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.person-name-link {
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+
+.person-name-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Habits 7-day dots */
+.habit-week {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.habit-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.habit-day-label {
+  font-size: 10.5px;
+  color: var(--neutral-muted);
+}
+
+.habit-day-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  background-color: var(--surface-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: transparent;
+}
+
+.habit-day-dot.checked {
+  background-color: var(--success);
+  border-color: var(--success);
+  color: #FFFFFF;
+}
+
+/* Vault copy box */
+.vault-content-box {
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--neutral-strong);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 130px;
+  overflow-y: auto;
+}
+
+/* Person 360 Profile Sections */
+.profile-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neutral-muted);
+  margin: 14px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ==========================================================================
    RESPONSIVE DESIGN
    ========================================================================== */
 @media (max-width: 1024px) {

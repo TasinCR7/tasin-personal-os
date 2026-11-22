@@ -271,6 +271,60 @@ const DEFAULT_DATA = {
       deadline: getRelativeDate(12),
       notes: 'সাপ্তাহিক স্পনসর পোস্ট ও চ্যানেল কোলাবরেশন নিয়ে চূড়ান্ত কথা বলতে হবে।'
     }
+  ],
+  debts: [
+    {
+      id: 'd1',
+      person: 'জাহিদুল করিম',
+      type: 'lend',
+      amount: 5000,
+      dueDate: getRelativeDate(-15),
+      note: 'জরুরি বিপদের কথা বলে ১০ দিনের জন্য নিয়েছিল',
+      settled: false
+    },
+    {
+      id: 'd2',
+      person: 'মাহমুদুল হাসান (সোহেল)',
+      type: 'lend',
+      amount: 3000,
+      dueDate: getRelativeDate(10),
+      note: 'ডোমেইন ও হোস্টিং বিল শেয়ার',
+      settled: false
+    }
+  ],
+  habits: [
+    {
+      id: 'h1',
+      name: '৫ ওয়াক্ত নামাজ ও সকালের রুটিন',
+      category: 'spiritual',
+      dates: [getRelativeDate(-2), getRelativeDate(-1), getRelativeDate(0)]
+    },
+    {
+      id: 'h2',
+      name: 'প্রতিদিন ২ ঘণ্টা ডিপ ওয়ার্ক (Telegram / প্রজেক্ট)',
+      category: 'work',
+      dates: [getRelativeDate(-1), getRelativeDate(0)]
+    },
+    {
+      id: 'h3',
+      name: '৩০ মিনিট হাঁটা / শরীরচর্চা',
+      category: 'health',
+      dates: [getRelativeDate(-2)]
+    }
+  ],
+  vault: [
+    {
+      id: 'v1',
+      title: 'ক্লায়েন্টকে পাঠানোর ওয়েলকাম মেসেজ (Telegram)',
+      category: 'template',
+      content: 'আসসালামু আলাইকুম! আপনার প্রজেক্টের বিস্তারিত শেয়ার করুন, আমি দ্রুত রিভিউ করে বাজেট ও সময় জানিয়ে দিচ্ছি।'
+    },
+    {
+      id: 'v2',
+      title: 'আমার মেইন Telegram চ্যানেল লিংক',
+      category: 'telegram',
+      content: 'https://t.me/tasin_updates'
+    }
   ]
 };
 
@@ -282,6 +336,16 @@ let activeConvFilter = 'all';
 let activeIdeaFilter = 'all';
 let activeFinanceFilter = 'all';
 let activeWorkFilter = 'all';
+let activeDebtFilter = 'all';
+let activeVaultFilter = 'all';
+
+function ensureStateArrays(obj) {
+  if (!Array.isArray(obj.work)) obj.work = JSON.parse(JSON.stringify(DEFAULT_DATA.work));
+  if (!Array.isArray(obj.debts)) obj.debts = JSON.parse(JSON.stringify(DEFAULT_DATA.debts));
+  if (!Array.isArray(obj.habits)) obj.habits = JSON.parse(JSON.stringify(DEFAULT_DATA.habits));
+  if (!Array.isArray(obj.vault)) obj.vault = JSON.parse(JSON.stringify(DEFAULT_DATA.vault));
+  return obj;
+}
 
 function getActiveStorageKey() {
   return currentUser ? `tasin_personal_os_user_${currentUser.id}` : STORAGE_KEY;
@@ -318,10 +382,7 @@ function loadState() {
       return JSON.parse(JSON.stringify(DEFAULT_DATA));
     }
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed.work)) {
-      parsed.work = JSON.parse(JSON.stringify(DEFAULT_DATA.work));
-    }
-    return parsed;
+    return ensureStateArrays(parsed);
   } catch (e) {
     console.error('Failed to load state:', e);
     return JSON.parse(JSON.stringify(DEFAULT_DATA));
@@ -494,6 +555,9 @@ function renderAll() {
   renderIdeas();
   renderJournal();
   renderFinance();
+  renderDebts();
+  renderHabits();
+  renderVault();
   populateContactDatalist();
 }
 
@@ -516,9 +580,54 @@ function renderTopbarAndBadges() {
   document.getElementById('navTasksCount').textContent = formatBanglaNumber(state.tasks.filter(t => !t.done).length);
   document.getElementById('navIdeasCount').textContent = formatBanglaNumber(state.ideas.length);
   document.getElementById('navJournalCount').textContent = formatBanglaNumber(state.journal.length);
+  document.getElementById('navDebtsCount').textContent = formatBanglaNumber((state.debts || []).filter(d => !d.settled).length);
+  const todayStr = getRelativeDate(0);
+  const habitsDoneToday = (state.habits || []).filter(h => (h.dates || []).includes(todayStr)).length;
+  document.getElementById('navHabitsCount').textContent = `${formatBanglaNumber(habitsDoneToday)}/${formatBanglaNumber((state.habits || []).length)}`;
+  document.getElementById('navVaultCount').textContent = formatBanglaNumber((state.vault || []).length);
+}
+
+function getUpcomingBirthdays(withinDays = 14) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const upcoming = [];
+
+  (state.contacts || []).forEach(c => {
+    if (!c.birthday) return;
+    const parts = c.birthday.split('-');
+    if (parts.length !== 3) return;
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    let nextBday = new Date(today.getFullYear(), month, day);
+    if (nextBday < today) {
+      nextBday = new Date(today.getFullYear() + 1, month, day);
+    }
+    const diff = Math.round((nextBday - today) / (1000 * 60 * 60 * 24));
+    if (diff >= 0 && diff <= withinDays) {
+      upcoming.push({ contact: c, daysLeft: diff });
+    }
+  });
+  return upcoming.sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
 function renderDashboard() {
+  // Upcoming Birthdays Banner
+  const bdayBanner = document.getElementById('dashBirthdayBanner');
+  const upcomingBdays = getUpcomingBirthdays(14);
+  if (bdayBanner) {
+    if (upcomingBdays.length > 0) {
+      bdayBanner.hidden = false;
+      const texts = upcomingBdays.map(b =>
+        b.daysLeft === 0
+          ? `🎂 আজ <strong>${escapeHTML(b.contact.name)}</strong>-এর জন্মদিন / বিশেষ দিন!`
+          : `🎉 <strong>${escapeHTML(b.contact.name)}</strong>-এর বিশেষ দিন ${formatBanglaNumber(b.daysLeft)} দিন পর`
+      );
+      bdayBanner.innerHTML = `<div>${texts.join(' &nbsp;•&nbsp; ')}</div><button class="btn-secondary btn-sm" onclick="switchTab('contacts')">উইশ করুন →</button>`;
+    } else {
+      bdayBanner.hidden = true;
+    }
+  }
+
   const totalContacts = state.contacts.length;
   const level1Count = state.contacts.filter(c => String(c.level) === '1').length;
   const dueContacts = state.contacts.filter(c => getContactFollowupStatus(c).isDue);
@@ -680,6 +789,12 @@ function renderContacts() {
       statusPill = `<span class="badge-success">✓ ${formatBanglaNumber(st.diffDays)} দিন পর পরবর্তী খোঁজ</span>`;
     }
 
+    // Build 1-click Call / WhatsApp / Telegram links
+    const rawDigits = (c.phone || '').replace(/[^0-9+]/g, '');
+    const waDigits = rawDigits.startsWith('01') ? '88' + rawDigits : rawDigits.replace(/^\+/, '');
+    const tgClean = (c.telegram || '').trim();
+    const tgLink = tgClean ? (tgClean.startsWith('http') ? tgClean : `https://t.me/${tgClean.replace(/^@/, '')}`) : '';
+
     return `
       <div class="card contact-card ${hasRF ? 'has-redflag' : ''}">
         <div>
@@ -687,15 +802,16 @@ function renderContacts() {
             <div class="contact-person">
               <div class="person-avatar lvl-${c.level}">${escapeHTML(initial)}</div>
               <div>
-                <div class="person-name">${escapeHTML(c.name)}</div>
+                <div class="person-name person-name-link" onclick="openPersonProfile('${c.id}')" title="সম্পূর্ণ হিস্ট্রি দেখুন">${escapeHTML(c.name)}</div>
                 <div class="person-relation">${escapeHTML(c.relation)}</div>
               </div>
             </div>
             ${getLevelBadgeHTML(c.level)}
           </div>
 
-          <div style="margin: 12px 0;">
+          <div style="margin: 12px 0; display:flex; gap:6px; flex-wrap:wrap;">
             ${statusPill}
+            ${c.birthday ? `<span class="chip">🎂 ${formatBanglaDate(c.birthday)}</span>` : ''}
           </div>
 
           <div class="contact-schedule-box">
@@ -715,6 +831,13 @@ function renderContacts() {
               <span>ফোন / যোগাযোগ</span>
               <strong>${escapeHTML(c.phone || 'দেওয়া নেই')}</strong>
             </div>
+          </div>
+
+          <div class="contact-comm-bar">
+            <button type="button" class="comm-btn" onclick="openPersonProfile('${c.id}')">👤 ৩৬০° প্রোফাইল</button>
+            ${rawDigits ? `<a class="comm-btn" href="tel:${escapeHTML(rawDigits)}">📞 কল</a>` : ''}
+            ${waDigits ? `<a class="comm-btn" href="https://wa.me/${escapeHTML(waDigits)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
+            ${tgLink ? `<a class="comm-btn" href="${escapeHTML(tgLink)}" target="_blank" rel="noopener">✈️ Telegram</a>` : ''}
           </div>
 
           ${c.notes ? `<div class="contact-note-box" style="margin-top: 12px;">${escapeHTML(c.notes)}</div>` : ''}
@@ -1205,7 +1328,319 @@ const TAB_TITLES = {
   tasks: 'সামনের কাজ ও পরিকল্পনা',
   ideas: 'আমার আইডিয়া ভল্ট',
   journal: 'জীবনের ঘটনা ও ডায়েরি',
-  finance: 'ব্যক্তিগত আয়-ব্যয় ও খরচ'
+  finance: 'ব্যক্তিগত আয়-ব্যয় ও খরচ',
+  debts: 'দেনা-পাওনা ও ধার-কর্জ',
+  habits: 'অভ্যাস ও ডেইলি রুটিন',
+  vault: 'লিংক ও মেসেজ টেমপ্লেট ভল্ট'
+};
+
+// ==========================================================================
+// PERSON 360 PROFILE MODAL
+// ==========================================================================
+window.openPersonProfile = function(contactId) {
+  const c = state.contacts.find(item => item.id === contactId);
+  if (!c) return;
+  const clean = c.name.trim().toLowerCase();
+
+  const convs = (state.conversations || []).filter(x => (x.person || '').trim().toLowerCase() === clean);
+  const rfs = (state.redFlags || []).filter(x => (x.person || '').trim().toLowerCase() === clean);
+  const works = (state.work || []).filter(x => (x.client || '').trim().toLowerCase() === clean);
+  const debts = (state.debts || []).filter(x => (x.person || '').trim().toLowerCase() === clean);
+
+  document.getElementById('profileModalName').textContent = `${c.name} — ৩৬০° প্রোফাইল`;
+
+  const body = document.getElementById('personProfileBody');
+  body.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <div>
+        <strong style="font-size:16px;">${escapeHTML(c.name)}</strong>
+        <div style="font-size:13px; color:var(--neutral-muted);">${escapeHTML(c.relation)}</div>
+      </div>
+      ${getLevelBadgeHTML(c.level)}
+    </div>
+
+    <div class="contact-schedule-box">
+      <div class="schedule-item"><span>ফোন</span><strong>${escapeHTML(c.phone || 'নেই')}</strong></div>
+      <div class="schedule-item"><span>Telegram</span><strong>${escapeHTML(c.telegram || 'নেই')}</strong></div>
+      <div class="schedule-item"><span>সর্বশেষ যোগাযোগ</span><strong>${formatBanglaDate(c.lastContactDate)}</strong></div>
+      <div class="schedule-item"><span>জন্মদিন / বিশেষ দিন</span><strong>${c.birthday ? formatBanglaDate(c.birthday) : 'দেওয়া নেই'}</strong></div>
+    </div>
+
+    ${c.notes ? `<div class="contact-note-box">${escapeHTML(c.notes)}</div>` : ''}
+
+    <div class="profile-section-title">⚠️ খারাপ ব্যবহার ও সতর্কতা (${formatBanglaNumber(rfs.length)})</div>
+    ${rfs.length === 0 ? '<p class="section-desc">কোনো খারাপ ব্যবহারের রেকর্ড নেই।</p>' : rfs.map(r => `
+      <div class="list-item redflag-item">
+        <div class="list-item-main">
+          <div class="list-item-body">${escapeHTML(r.incident)}</div>
+          <div class="boundary-box">🛡️ ${escapeHTML(r.boundary)}</div>
+          <div class="list-item-meta"><span>${formatBanglaDate(r.date)}</span></div>
+        </div>
+      </div>
+    `).join('')}
+
+    <div class="profile-section-title">💬 কে কী বলেছে ও ওয়াদা (${formatBanglaNumber(convs.length)})</div>
+    ${convs.length === 0 ? '<p class="section-desc">কোনো কথোপকথনের নোট নেই।</p>' : convs.map(cv => `
+      <div class="list-item">
+        <div class="list-item-main">
+          <div class="list-item-body">"${escapeHTML(cv.quote)}"</div>
+          <div class="list-item-meta"><span>${formatBanglaDate(cv.date)}</span></div>
+        </div>
+      </div>
+    `).join('')}
+
+    <div class="profile-section-title">💳 দেনা-পাওনা হিসাব (${formatBanglaNumber(debts.length)})</div>
+    ${debts.length === 0 ? '<p class="section-desc">কোনো দেনা-পাওনা নেই।</p>' : debts.map(d => `
+      <div class="list-item">
+        <div class="list-item-main">
+          <div class="list-item-header">
+            <span class="${d.type === 'lend' ? 'badge-success' : 'badge-error'}">${d.type === 'lend' ? 'আমি পাবো' : 'আমি দেবো'} ৳${formatBanglaNumber(d.amount)}</span>
+            ${d.settled ? '<span class="chip">✅ পরিশোধিত</span>' : '<span class="badge-warning">বাকি আছে</span>'}
+          </div>
+          <div class="list-item-body">${escapeHTML(d.note)}</div>
+        </div>
+      </div>
+    `).join('')}
+
+    <div class="profile-section-title">✈️ সংশ্লিষ্ট Work / Telegram কাজ (${formatBanglaNumber(works.length)})</div>
+    ${works.length === 0 ? '<p class="section-desc">কোনো Work যুক্ত নেই।</p>' : works.map(w => `
+      <div class="list-item">
+        <div class="list-item-main">
+          <div class="list-item-title">${escapeHTML(w.title)}</div>
+          <div class="list-item-meta"><span>বাজেট: ৳${formatBanglaNumber(w.budget)}</span><span>${escapeHTML(w.handle || '')}</span></div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+  openModal('personProfileModal');
+};
+
+// ==========================================================================
+// DEBTS (দেনা-পাওনা / ধার-কর্জ)
+// ==========================================================================
+function renderDebts() {
+  const list = state.debts || [];
+  const totalRecv = list.filter(d => !d.settled && d.type === 'lend').reduce((s, d) => s + Number(d.amount || 0), 0);
+  const totalPay = list.filter(d => !d.settled && d.type === 'borrow').reduce((s, d) => s + Number(d.amount || 0), 0);
+
+  document.getElementById('debtTotalReceivable').textContent = `৳ ${formatBanglaNumber(totalRecv)}`;
+  document.getElementById('debtTotalPayable').textContent = `৳ ${formatBanglaNumber(totalPay)}`;
+  document.getElementById('debtNetAmount').textContent = `৳ ${formatBanglaNumber(totalRecv - totalPay)}`;
+
+  const listEl = document.getElementById('debtsList');
+  const filtered = list.filter(d => {
+    if (activeDebtFilter === 'lend') return !d.settled && d.type === 'lend';
+    if (activeDebtFilter === 'borrow') return !d.settled && d.type === 'borrow';
+    if (activeDebtFilter === 'settled') return d.settled;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">এই তালিকায় কোনো দেনা-পাওনার হিসাব নেই।</div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(d => `
+    <div class="list-item" style="${d.settled ? 'opacity:0.65;' : ''}">
+      <div class="list-item-main">
+        <div class="list-item-header">
+          <span class="list-item-title">${escapeHTML(d.person)}</span>
+          ${d.type === 'lend'
+            ? '<span class="badge-success">🟢 আমি পাবো</span>'
+            : '<span class="badge-error">🔴 আমি দেবো</span>'}
+          ${d.settled ? '<span class="chip">✅ পরিশোধিত</span>' : '<span class="badge-warning">⏳ বাকি</span>'}
+        </div>
+        <div class="list-item-body">${escapeHTML(d.note)}</div>
+        <div class="list-item-meta">
+          <span>ফেরত তারিখ: ${d.dueDate ? formatBanglaDate(d.dueDate) : 'নির্ধারিত নেই'}</span>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <strong class="${d.type === 'lend' ? 'text-success' : 'text-error'} sensitive-val" style="font-size:16px;">
+          ৳${formatBanglaNumber(d.amount)}
+        </strong>
+        <button class="btn-outline" onclick="toggleDebtSettled('${d.id}')">${d.settled ? 'বাকি করুন' : '✓ পরিশোধিত'}</button>
+        <button class="btn-danger-ghost" onclick="deleteDebt('${d.id}')">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.toggleDebtSettled = function(id) {
+  const item = (state.debts || []).find(d => d.id === id);
+  if (!item) return;
+  item.settled = !item.settled;
+  saveState();
+  showToast(item.settled ? 'হিসাবটি পরিশোধিত হিসেবে সেভ হয়েছে!' : 'হিসাবটি আবার বাকি হিসেবে চিহ্নিত হয়েছে।');
+};
+
+window.deleteDebt = function(id) {
+  state.debts = (state.debts || []).filter(d => d.id !== id);
+  saveState();
+  showToast('দেনা-পাওনার হিসাব মুছে ফেলা হয়েছে।');
+};
+
+// ==========================================================================
+// DAILY HABITS & STREAKS (অভ্যাস ও ডেইলি রুটিন)
+// ==========================================================================
+function calculateHabitStreak(dates = []) {
+  const set = new Set(dates);
+  let streak = 0;
+  let offset = 0;
+  if (!set.has(getRelativeDate(0))) {
+    offset = -1;
+  }
+  while (set.has(getRelativeDate(offset))) {
+    streak++;
+    offset--;
+  }
+  return streak;
+}
+
+function renderHabits() {
+  const grid = document.getElementById('habitsGrid');
+  const habits = state.habits || [];
+  const todayStr = getRelativeDate(0);
+  const catMap = {
+    spiritual: '🕌 ইবাদত ও শান্তি',
+    work: '💻 কাজ ও স্কিল',
+    health: '🏃 স্বাস্থ্য ও ব্যায়াম',
+    learning: '📚 পড়াশোনা ও উন্নতি'
+  };
+
+  if (habits.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">কোনো অভ্যাস যুক্ত করা হয়নি। উপরে আপনার প্রথম ডেইলি অভ্যাস লিখুন!</div>`;
+    return;
+  }
+
+  grid.innerHTML = habits.map(h => {
+    const dates = h.dates || [];
+    const doneToday = dates.includes(todayStr);
+    const streak = calculateHabitStreak(dates);
+
+    const last7HTML = [-6, -5, -4, -3, -2, -1, 0].map(off => {
+      const ds = getRelativeDate(off);
+      const dObj = new Date(ds + 'T00:00:00');
+      const dayLabel = dObj.toLocaleDateString('bn-BD', { weekday: 'narrow' });
+      const checked = dates.includes(ds);
+      return `
+        <div class="habit-day">
+          <span class="habit-day-label">${dayLabel}</span>
+          <div class="habit-day-dot ${checked ? 'checked' : ''}">✓</div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="card contact-card">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+            <span class="chip">${catMap[h.category] || '✨ অভ্যাস'}</span>
+            <span class="${streak > 0 ? 'badge-warning' : 'chip'}">🔥 ${formatBanglaNumber(streak)} দিন টানা</span>
+          </div>
+          <h3 class="idea-title" style="margin-top:0;">${escapeHTML(h.name)}</h3>
+          <div class="habit-week">${last7HTML}</div>
+        </div>
+        <div class="contact-actions">
+          <button class="${doneToday ? 'btn-secondary' : 'btn-primary'} btn-sm" onclick="toggleHabitToday('${h.id}')">
+            ${doneToday ? '✓ আজ সম্পন্ন হয়েছে' : '○ আজকের টিক দিন'}
+          </button>
+          <button class="btn-danger-ghost" onclick="deleteHabit('${h.id}')">মুছুন</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.toggleHabitToday = function(id) {
+  const h = (state.habits || []).find(item => item.id === id);
+  if (!h) return;
+  if (!Array.isArray(h.dates)) h.dates = [];
+  const todayStr = getRelativeDate(0);
+  if (h.dates.includes(todayStr)) {
+    h.dates = h.dates.filter(d => d !== todayStr);
+    showToast('আজকের টিক সরানো হয়েছে।');
+  } else {
+    h.dates.push(todayStr);
+    showToast('দারুণ! আজকের অভ্যাস সম্পন্ন হয়েছে 🔥');
+  }
+  saveState();
+};
+
+window.deleteHabit = function(id) {
+  state.habits = (state.habits || []).filter(h => h.id !== id);
+  saveState();
+  showToast('অভ্যাসটি মুছে ফেলা হয়েছে।');
+};
+
+// ==========================================================================
+// QUICK COPY VAULT (লিংক ও মেসেজ টেমপ্লেট ভল্ট)
+// ==========================================================================
+function renderVault() {
+  const grid = document.getElementById('vaultGrid');
+  const query = (document.getElementById('vaultSearchInput')?.value || '').trim().toLowerCase();
+  const catLabels = {
+    telegram: '✈️ Telegram লিংক',
+    template: '💬 মেসেজ টেমপ্লেট',
+    link: '🔗 জরুরি ওয়েবসাইট'
+  };
+
+  const filtered = (state.vault || []).filter(v => {
+    if (activeVaultFilter !== 'all' && v.category !== activeVaultFilter) return false;
+    if (query) {
+      const hay = `${v.title} ${v.content}`.toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">ভল্টে কোনো আইটেম পাওয়া যায়নি।</div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(v => {
+    const isUrl = /^https?:\/\//i.test((v.content || '').trim());
+    return `
+      <div class="card idea-card">
+        <div>
+          <span class="badge-primary">${catLabels[v.category] || '📌 ভল্ট'}</span>
+          <h3 class="idea-title">${escapeHTML(v.title)}</h3>
+          <div class="vault-content-box">${escapeHTML(v.content)}</div>
+        </div>
+        <div class="contact-actions">
+          <div style="display:flex; gap:6px;">
+            <button class="btn-primary btn-sm" onclick="copyVaultItem('${v.id}')">📋 কপি করুন</button>
+            ${isUrl ? `<a class="btn-outline" href="${escapeHTML(v.content.trim())}" target="_blank" rel="noopener" style="text-decoration:none; display:inline-flex; align-items:center;">খুলুন ↗</a>` : ''}
+          </div>
+          <button class="btn-danger-ghost" onclick="deleteVaultItem('${v.id}')">মুছুন</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.copyVaultItem = async function(id) {
+  const item = (state.vault || []).find(v => v.id === id);
+  if (!item) return;
+  try {
+    await navigator.clipboard.writeText(item.content);
+    showToast('ক্লিপবোর্ডে কপি হয়েছে! 📋');
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = item.content;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('ক্লিপবোর্ডে কপি হয়েছে! 📋');
+  }
+};
+
+window.deleteVaultItem = function(id) {
+  state.vault = (state.vault || []).filter(v => v.id !== id);
+  saveState();
+  showToast('ভল্ট আইটেম মুছে ফেলা হয়েছে।');
 };
 
 function switchTab(tabId) {
@@ -1286,10 +1721,7 @@ async function enterWorkspace(user) {
   if (user.isCloud && sbClient) {
     const cloudData = await loadFromSupabase(user.id);
     if (cloudData && cloudData.contacts) {
-      if (!Array.isArray(cloudData.work)) {
-        cloudData.work = JSON.parse(JSON.stringify(DEFAULT_DATA.work));
-      }
-      state = cloudData;
+      state = ensureStateArrays(cloudData);
       localStorage.setItem(getActiveStorageKey(), JSON.stringify(state));
       renderAll();
     } else {
@@ -1675,6 +2107,35 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('addIdeaBtn').addEventListener('click', () => openModal('ideaModal'));
   document.getElementById('addJournalBtn').addEventListener('click', () => openModal('journalModal'));
   document.getElementById('addFinanceBtn').addEventListener('click', () => openModal('financeModal'));
+  document.getElementById('addDebtBtn').addEventListener('click', () => openModal('debtModal'));
+  document.getElementById('addVaultBtn').addEventListener('click', () => openModal('vaultModal'));
+
+  // Dark Mode & Privacy Blur Toggles
+  const darkModeBtn = document.getElementById('darkModeBtn');
+  const privacyBlurBtn = document.getElementById('privacyBlurBtn');
+
+  function applyThemeAndPrivacy() {
+    const isDark = localStorage.getItem('tasin_os_dark_mode') === '1';
+    const isBlur = localStorage.getItem('tasin_os_privacy_blur') === '1';
+    document.body.classList.toggle('dark-mode', isDark);
+    document.body.classList.toggle('privacy-blur', isBlur);
+    if (darkModeBtn) darkModeBtn.textContent = isDark ? '☀️ লাইট' : '🌙 ডার্ক';
+    if (privacyBlurBtn) privacyBlurBtn.textContent = isBlur ? '👁️ দেখান' : '🙈 প্রাইভেসি';
+  }
+  applyThemeAndPrivacy();
+
+  darkModeBtn.addEventListener('click', () => {
+    const next = localStorage.getItem('tasin_os_dark_mode') !== '1';
+    localStorage.setItem('tasin_os_dark_mode', next ? '1' : '0');
+    applyThemeAndPrivacy();
+  });
+
+  privacyBlurBtn.addEventListener('click', () => {
+    const next = localStorage.getItem('tasin_os_privacy_blur') !== '1';
+    localStorage.setItem('tasin_os_privacy_blur', next ? '1' : '0');
+    applyThemeAndPrivacy();
+    showToast(next ? 'প্রাইভেসি ব্লার চালু হয়েছে 🙈' : 'প্রাইভেসি ব্লার বন্ধ হয়েছে 👁️');
+  });
   document.getElementById('addTaskBtn').addEventListener('click', () => {
     document.getElementById('quickTaskTitle').focus();
   });
@@ -1740,6 +2201,27 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('workSearchInput').addEventListener('input', renderWork);
 
+  // Filter Pills — Debts
+  document.getElementById('debtTypeFilters').addEventListener('click', e => {
+    const btn = e.target.closest('.filter-pill');
+    if (!btn) return;
+    document.querySelectorAll('#debtTypeFilters .filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeDebtFilter = btn.dataset.dtype;
+    renderDebts();
+  });
+
+  // Filter Pills — Vault
+  document.getElementById('vaultCategoryFilters').addEventListener('click', e => {
+    const btn = e.target.closest('.filter-pill');
+    if (!btn) return;
+    document.querySelectorAll('#vaultCategoryFilters .filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeVaultFilter = btn.dataset.vcat;
+    renderVault();
+  });
+  document.getElementById('vaultSearchInput').addEventListener('input', renderVault);
+
   // Form Submissions
   document.getElementById('contactForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -1750,6 +2232,8 @@ document.addEventListener('DOMContentLoaded', () => {
       level: document.getElementById('contactLevel').value,
       frequencyDays: Number(document.getElementById('contactFrequencyDays').value),
       phone: document.getElementById('contactPhone').value.trim(),
+      telegram: document.getElementById('contactTelegram').value.trim(),
+      birthday: document.getElementById('contactBirthday').value,
       lastContactDate: document.getElementById('contactLastDate').value,
       notes: document.getElementById('contactNotes').value.trim()
     });
@@ -1888,6 +2372,53 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('নতুন Work / Telegram কাজ যুক্ত হয়েছে!');
   });
 
+  document.getElementById('debtForm').addEventListener('submit', e => {
+    e.preventDefault();
+    if (!Array.isArray(state.debts)) state.debts = [];
+    state.debts.unshift({
+      id: 'd_' + Date.now(),
+      person: document.getElementById('debtPerson').value.trim(),
+      type: document.getElementById('debtType').value,
+      amount: Number(document.getElementById('debtAmount').value),
+      dueDate: document.getElementById('debtDueDate').value,
+      note: document.getElementById('debtNote').value.trim(),
+      settled: false
+    });
+    e.target.reset();
+    closeAllModals();
+    saveState();
+    showToast('দেনা-পাওনার হিসাব সংরক্ষিত হয়েছে!');
+  });
+
+  document.getElementById('quickHabitForm').addEventListener('submit', e => {
+    e.preventDefault();
+    if (!Array.isArray(state.habits)) state.habits = [];
+    state.habits.unshift({
+      id: 'h_' + Date.now(),
+      name: document.getElementById('quickHabitName').value.trim(),
+      category: document.getElementById('quickHabitCategory').value,
+      dates: []
+    });
+    document.getElementById('quickHabitName').value = '';
+    saveState();
+    showToast('নতুন ডেইলি অভ্যাস যুক্ত হয়েছে!');
+  });
+
+  document.getElementById('vaultForm').addEventListener('submit', e => {
+    e.preventDefault();
+    if (!Array.isArray(state.vault)) state.vault = [];
+    state.vault.unshift({
+      id: 'v_' + Date.now(),
+      title: document.getElementById('vaultTitle').value.trim(),
+      category: document.getElementById('vaultCategory').value,
+      content: document.getElementById('vaultContent').value.trim()
+    });
+    e.target.reset();
+    closeAllModals();
+    saveState();
+    showToast('লিংক / টেমপ্লেট ভল্টে সেভ হয়েছে!');
+  });
+
   // Global Search (Ctrl/Cmd + K)
   document.getElementById('openSearchBtn').addEventListener('click', () => {
     openModal('searchModal');
@@ -1977,6 +2508,16 @@ function renderGlobalSearch(query) {
   (state.work || []).forEach(w => {
     if (!q || `${w.title} ${w.handle} ${w.client} ${w.notes}`.toLowerCase().includes(q)) {
       items.push({ tab: 'work', badge: '✈️ Work', title: w.title, sub: w.handle || w.client });
+    }
+  });
+  (state.debts || []).forEach(d => {
+    if (!q || `${d.person} ${d.note}`.toLowerCase().includes(q)) {
+      items.push({ tab: 'debts', badge: d.type === 'lend' ? '🟢 পাওনা' : '🔴 দেনা', title: d.person, sub: `৳${formatBanglaNumber(d.amount)} — ${d.note}` });
+    }
+  });
+  (state.vault || []).forEach(v => {
+    if (!q || `${v.title} ${v.content}`.toLowerCase().includes(q)) {
+      items.push({ tab: 'vault', badge: '📋 ভল্ট', title: v.title, sub: v.content });
     }
   });
 
